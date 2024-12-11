@@ -8,25 +8,29 @@ import torch.optim as optim
 
 from torch.utils.data import Dataset, DataLoader, random_split
 
+
 class MLP(nn.Module):
-    def __init__(self, n_input: int = 1, n_output: int = 1, n_hidden: int = 64, n_layers: int = 2):
+    def __init__(
+        self, n_input: int = 1, n_output: int = 1, n_hidden: int = 64, n_layers: int = 2
+    ):
         super(MLP, self).__init__()
         layers = []
         layers.append(nn.Linear(n_input, n_hidden))
         layers.append(nn.BatchNorm1d(n_hidden))
         layers.append(nn.ReLU())
-        
+
         for _ in range(n_layers - 1):
             layers.append(nn.Linear(n_hidden, n_hidden))
             layers.append(nn.BatchNorm1d(n_hidden))
             layers.append(nn.ReLU())
-        
+
         layers.append(nn.Linear(n_hidden, n_output))
         self.model = nn.Sequential(*layers)
 
     def forward(self, x):
         return self.model(x)
-    
+
+
 class ModuloDataset(Dataset):
     def __init__(self, n_samples: int = 10000, m: int = 3):
         self.X = torch.randint(0, 100, size=(n_samples,)).float().unsqueeze(1)
@@ -41,7 +45,8 @@ class ModuloDataset(Dataset):
 
     def __getitem__(self, idx):
         return self.X[idx], self.y[idx]
-    
+
+
 def train(model, dataloader, criterion, optimizer, device):
     model.train()
     total_loss = 0.0
@@ -75,17 +80,21 @@ def evaluate(model, dataloader, criterion, device):
 
     return total_loss / len(dataloader)
 
+
 def get_device():
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-def main(seed: int = 0,
-        n_samples: int = 10000,
-        modulo: int = 10,
-        n_hidden: int = 128,
-        n_layers: int = 3, 
-        batch_size: int = 10000,
-        epochs: int = 10000,
-        learning_rate: int = 1e-2):
+
+def main(
+    seed: int = 0,
+    n_samples: int = 10000,
+    modulo: int = 10,
+    n_hidden: int = 128,
+    n_layers: int = 3,
+    batch_size: int = 10000,
+    epochs: int = 10000,
+    learning_rate: int = 1e-2,
+):
     # set random seeds
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -101,7 +110,6 @@ def main(seed: int = 0,
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-
     # init model, criterion, optimizer
     model = MLP(n_hidden=n_hidden, n_layers=n_layers).to(device)
     criterion = nn.MSELoss()
@@ -112,9 +120,9 @@ def main(seed: int = 0,
         train_loss = train(model, train_loader, criterion, optimizer, device)
         test_loss = evaluate(model, test_loader, criterion, device)
 
-
-        print(f"Epoch [{epoch + 1}/{epochs}] - Train Loss: {train_loss:.4f}, Test Loss: {test_loss:.4f}")
-
+        print(
+            f"Epoch [{epoch + 1}/{epochs}] - Train Loss: {train_loss:.4f}, Test Loss: {test_loss:.4f}"
+        )
 
 
 if __name__ == "__main__":

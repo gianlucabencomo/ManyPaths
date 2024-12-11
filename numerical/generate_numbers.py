@@ -352,13 +352,13 @@ def generate_number_grid(number):
 
     return grid_image
 
+if __name__ == "__main__":
+    # Example usage
+    number = 99  # Replace with any number from 0 to 99
+    grid_image = generate_number_grid(number)
 
-# # Example usage
-# number = 97  # Replace with any number from 0 to 99
-# grid_image = generate_number_grid(number)
-
-# # Display the grid
-# plt.imshow(grid_image, cmap="gray", interpolation="nearest")
-# plt.axis("off")
-# plt.title(f"Number {number} as a 32x32 Grid")
-# plt.show()
+    # Display the grid
+    plt.imshow(grid_image, cmap="gray", interpolation="nearest")
+    plt.axis("off")
+    plt.title(f"Number {number} as a 32x32 Grid")
+    plt.show()

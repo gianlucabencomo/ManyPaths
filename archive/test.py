@@ -7,21 +7,18 @@ from torch.utils.data import Dataset, DataLoader
 import matplotlib.pyplot as plt
 import numpy as np
 
-from generate_numbers import generate_number_grid
 
-class CNNModuloDataset(Dataset):
+class ModuloDataset(Dataset):
     def __init__(self, n_samples: int = 10000, m: int = 10, range_max: int = 100):
         self.n_samples = n_samples
         self.m = m
         self.range_max = range_max
-        self.X = torch.randint(0, self.range_max, size=(self.n_samples,)).float().unsqueeze(1)
+        self.X = (
+            torch.randint(0, self.range_max, size=(self.n_samples,))
+            .float()
+            .unsqueeze(1)
+        )
         self.y = (self.X % self.m).float()
-
-        self.X_images = torch.zeros((n_samples, 1, 32, 32))
-
-        for i, number in enumerate(self.X[:,0].int().numpy()):
-            grid_image = generate_number_grid(number).reshape(1, 32, 32)
-            self.X_images[i] = torch.tensor(grid_image)
 
     def __len__(self):
         return self.n_samples
@@ -29,42 +26,42 @@ class CNNModuloDataset(Dataset):
     def __getitem__(self, idx):
         return self.X[idx], self.y[idx]
 
-class CNN(nn.Module):
-    def __init__(self, n_output: int = 1):
-        super(CNN, self).__init__()
-        self.features = nn.Sequential(
-            nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1),  # 32x32 -> 32x32
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
-            nn.MaxPool2d(2),  # 32x32 -> 16x16
 
-            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),  # 16x16 -> 16x16
-            nn.BatchNorm2d(64),
-            nn.ReLU(),
-            nn.MaxPool2d(2),  # 16x16 -> 8x8
-        )
-        self.classifier = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(64 * 8 * 8, 128),
-            nn.ReLU(),
-            nn.Linear(128, n_output),
-        )
+class MLP(nn.Module):
+    def __init__(
+        self, n_input: int = 1, n_output: int = 1, n_hidden: int = 64, n_layers: int = 2
+    ):
+        super(MLP, self).__init__()
+        layers = []
+        layers.append(nn.Linear(n_input, n_hidden))
+        layers.append(nn.BatchNorm1d(n_hidden))
+        layers.append(nn.ReLU())
+
+        for _ in range(n_layers - 1):
+            layers.append(nn.Linear(n_hidden, n_hidden))
+            layers.append(nn.BatchNorm1d(n_hidden))
+            layers.append(nn.ReLU())
+
+        layers.append(nn.Linear(n_hidden, n_output))
+        self.model = nn.Sequential(*layers)
 
     def forward(self, x):
-        x = self.features(x)
-        x = self.classifier(x)
-        return x
+        return self.model(x)
 
-dataset = CNNModuloDataset(n_samples=128, m=20, range_max=100)
+
+dataset = ModuloDataset(n_samples=128, m=20, range_max=100)
 dataloader = DataLoader(dataset, batch_size=64, shuffle=True)
+
 
 def get_device():
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+
 device = get_device()
 
 # Initialize the model, loss function, and optimizer
-model = CNN()
+model = MLP(n_layers=8)
+print(sum(p.numel() for p in model.parameters() if p.requires_grad))
 criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=500, gamma=0.5)
@@ -75,19 +72,19 @@ losses = []
 for epoch in range(epochs):
     model.train()
     batch_loss = []
-    X = dataset.X_images
+    X = dataset.X
     y = dataset.y
     y_pred = model(X)
     loss = criterion(y_pred, y)
-        
+
     # Backward pass and optimization
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
     scheduler.step()
-        
+
     losses.append(loss.item())
-    #losses.append(np.mean(batch_loss))
+    # losses.append(np.mean(batch_loss))
     if (epoch + 1) % 10 == 0:
         print(f"Epoch {epoch+1}/{epochs}, Loss: {loss.item():.4f}")
 
