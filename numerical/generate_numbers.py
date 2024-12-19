@@ -352,9 +352,10 @@ def generate_number_grid(number):
 
     return grid_image
 
+
 if __name__ == "__main__":
     # Example usage
-    number = 99  # Replace with any number from 0 to 99
+    number = 45  # Replace with any number from 0 to 99
     grid_image = generate_number_grid(number)
 
     # Display the grid
