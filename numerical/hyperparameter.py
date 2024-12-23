@@ -1,5 +1,4 @@
 import typer
-from tqdm.auto import tqdm
 
 import numpy as np
 
@@ -172,7 +171,7 @@ def meta_train(
 ):
     meta.train()
     train_losses, test_losses = [], []
-    for epoch in tqdm(range(epochs)):
+    for epoch in range(epochs):
         optimizer.zero_grad()
         meta_loss = 0.0
 
