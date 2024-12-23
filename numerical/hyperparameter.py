@@ -161,6 +161,7 @@ def evaluate(
 def meta_train(
     meta,
     train_dataset,
+    test_train_dataset,
     test_dataset,
     criterion,
     optimizer,
@@ -204,7 +205,7 @@ def meta_train(
 
         if (epoch + 1) % 10 == 0:
             train_loss = evaluate(
-                meta, train_dataset, criterion, device, [0, adaptation_steps]
+                meta, test_train_dataset, criterion, device, [0, adaptation_steps]
             )
             test_loss = evaluate(
                 meta, test_dataset, criterion, device, [0, adaptation_steps]
@@ -267,7 +268,7 @@ def init_dataset_and_model(model, skip, index):
 
 def main(
     seed: int = 10e3,
-    epochs: int = 1000,
+    epochs: int = 100,
     tasks_per_meta_batch: int = 4,  # static
     adaptation_steps: int = 1,  # train [1] test [0, 1]
     inner_lr: float = 1e-3,
@@ -294,6 +295,7 @@ def main(
         train_losses, test_losses = meta_train(
             meta,
             train_dataset,
+            test_train_dataset,
             test_dataset,
             criterion,
             optimizer,
@@ -309,7 +311,7 @@ def main(
         try:
             dtype = [('m', 'U50'), ('skip', 'i4'), ('index', 'i4'), ('min_train_loss', 'f4'), ('min_test_loss', 'f4')]
             structured_array = np.array(results, dtype=dtype)
-            np.savez('search_results_1000.npz', results=structured_array)
+            np.savez(f'search_results_{epochs}_{seed}.npz', results=structured_array)
         except:
             print("Error Saving Search Results...")
 

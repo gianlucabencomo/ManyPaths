@@ -19,7 +19,7 @@ from utils import set_random_seeds
 from visualize import plot_loss, plot_meta_test_results
 
 MLP_PARAMS = (64, 8)
-CNN_PARAMS = ([64, 32, 16, 8], 8)
+CNN_PARAMS = ([16, 8], 8)
 LSTM_PARAMS = (64, 2)
 TRANSFORMER_PARAMS = (64, 2)
 
@@ -141,7 +141,7 @@ def meta_train(
 
 
 def init_dataset_and_model(
-    model, model_size, data_type, n_tasks, n_samples_per_task, skip
+    model, data_type, n_tasks, n_samples_per_task, skip
 ):
     if data_type == "image":
         Dataset = MetaImageModuloDataset
@@ -164,21 +164,18 @@ def init_dataset_and_model(
         n_tasks, n_samples_per_task, range_max=100, skip=skip, train=True, model=model
     )
 
-    if model_size == "fixed":
-        if model == "mlp":
-            n_hidden, n_layers = MLP_PARAMS
-            model = MLP(n_input=n_input, n_hidden=n_hidden, n_layers=n_layers)
-        elif model == "cnn":
-            n_hiddens, n_layers = CNN_PARAMS
-            model = CNN(n_hiddens=n_hiddens, n_layers=n_layers)
-        elif model == "lstm":
-            n_hidden, n_layers = LSTM_PARAMS
-            model = LSTM(n_input=n_input, n_hidden=n_hidden, n_layers=n_layers)
-        else:
-            n_hidden, n_layers = TRANSFORMER_PARAMS
-            model = Transformer(n_input=n_input, d_model=n_hidden, dim_feedforward=n_hidden, n_layers=n_layers)
+    if model == "mlp":
+        n_hidden, n_layers = MLP_PARAMS
+        model = MLP(n_input=n_input, n_hidden=n_hidden, n_layers=n_layers)
+    elif model == "cnn":
+        n_hiddens, n_layers = CNN_PARAMS
+        model = CNN(n_hiddens=n_hiddens, n_layers=n_layers)
+    elif model == "lstm":
+        n_hidden, n_layers = LSTM_PARAMS
+        model = LSTM(n_input=n_input, n_hidden=n_hidden, n_layers=n_layers)
     else:
-        raise NotImplementedError
+        n_hidden, n_layers = TRANSFORMER_PARAMS
+        model = Transformer(n_input=n_input, d_model=n_hidden, dim_feedforward=n_hidden, num_layers=n_layers)
 
     return train_dataset, test_dataset, test_train_dataset, model
 
@@ -186,7 +183,6 @@ def init_dataset_and_model(
 def main(
     seed: int = 0,
     m: str = "mlp",  # ['mlp', 'cnn', 'lstm', 'transformer']
-    model_size: str = "fixed",  # ['fixed', 'performance'] # TODO: set performance and fixed
     data_type: str = "image",  # ['image', 'bits', 'number']
     n_tasks: int = 20,  # static
     n_samples_per_task: int = 20,  # [20, 50, 100]
@@ -205,7 +201,7 @@ def main(
 
     # init dataset and model
     train_dataset, test_dataset, test_train_dataset, model = init_dataset_and_model(
-        m, model_size, data_type, n_tasks, n_samples_per_task, skip
+        m, data_type, n_tasks, n_samples_per_task, skip
     )
 
     # init meta-learner, loss, and meta-optimizer
@@ -253,7 +249,7 @@ def main(
         + str(seed)
     )
     if save:
-        save_res(results, file_prefix=file_prefix)
+        save_res(results, save_dir=m, file_prefix=file_prefix)
         save_model(meta, file_prefix=file_prefix)
 
     _, results = evaluate(
@@ -280,7 +276,7 @@ def main(
         + str(seed)
     )
     if save:
-        save_res(results, file_prefix=file_prefix)
+        save_res(results, save_dir=m, file_prefix=file_prefix)
 
     if plot:
         plt.show()
