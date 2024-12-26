@@ -18,7 +18,7 @@ from models import MLP, CNN, LSTM, Transformer
 from utils import set_random_seeds
 from visualize import plot_loss, plot_meta_test_results
 
-MLP_PARAMS = (64, 8)
+MLP_PARAMS = (64, 4)
 CNN_PARAMS = ([16, 8], 8)
 LSTM_PARAMS = (64, 2)
 TRANSFORMER_PARAMS = (64, 2)
@@ -37,7 +37,8 @@ def evaluate(meta, dataset, criterion, device, adaptation_steps, return_results=
     meta.train()
     meta_loss, results = 0.0, []
     for task in dataset.tasks:
-        X_s, X_num_s, y_s, X_q, X_num_q, y_q, m = task
+        idx = torch.randint(0, len(task), size=(1,)).item()
+        X_s, X_num_s, y_s, X_q, X_num_q, y_q, m = task[idx]
         X_s, y_s, X_q, y_q = (
             X_s.to(device),
             y_s.to(device),
@@ -82,6 +83,7 @@ def evaluate(meta, dataset, criterion, device, adaptation_steps, return_results=
 def meta_train(
     meta,
     train_dataset,
+    test_train_dataset,
     test_dataset,
     criterion,
     optimizer,
@@ -126,7 +128,7 @@ def meta_train(
 
         if (epoch + 1) % 10 == 0:
             train_loss = evaluate(
-                meta, train_dataset, criterion, device, [0, adaptation_steps]
+                meta, test_train_dataset, criterion, device, [0, adaptation_steps]
             )
             test_loss = evaluate(
                 meta, test_dataset, criterion, device, [0, adaptation_steps]
@@ -149,19 +151,21 @@ def init_dataset_and_model(
     elif data_type == "bits":
         Dataset = MetaBitStringModuloDataset
         n_input = 8 if model == "mlp" else 1
-    else:
+    elif data_type == "number":
         Dataset = MetaNumberModuloDataset
         n_input = 1
+    else:
+        raise ValueError("Data Type unrecognized.")
 
     # init datasets
     train_dataset = Dataset(
-        n_tasks, n_samples_per_task, range_max=100, skip=skip, train=True, model=model
+        n_tasks, n_samples_per_task, range_max=100, n_samples=1000, skip=skip, train=True, model=model
     )
     test_dataset = Dataset(
-        n_tasks, n_samples_per_task, range_max=100, skip=skip, train=False, model=model
+        n_tasks, n_samples_per_task, range_max=100, n_samples=1, skip=skip, train=False, model=model
     )
     test_train_dataset = Dataset(
-        n_tasks, n_samples_per_task, range_max=100, skip=skip, train=True, model=model
+        n_tasks, n_samples_per_task, range_max=100, n_samples=1, skip=skip, train=True, model=model
     )
 
     if model == "mlp":
@@ -173,9 +177,11 @@ def init_dataset_and_model(
     elif model == "lstm":
         n_hidden, n_layers = LSTM_PARAMS
         model = LSTM(n_input=n_input, n_hidden=n_hidden, n_layers=n_layers)
-    else:
+    elif model == "transformer":
         n_hidden, n_layers = TRANSFORMER_PARAMS
-        model = Transformer(n_input=n_input, d_model=n_hidden, dim_feedforward=n_hidden, num_layers=n_layers)
+        model = Transformer(n_input=n_input, d_model=n_hidden, dim_feedforward=4*n_hidden, num_layers=n_layers)
+    else:
+        raise ValueError("Model unrecognized.")
 
     return train_dataset, test_dataset, test_train_dataset, model
 
@@ -208,12 +214,13 @@ def main(
     model = model.to(device)
     meta = l2l.algorithms.MetaSGD(model, lr=inner_lr, first_order=False).to(device)
     criterion = nn.MSELoss()
-    optimizer = torch.optim.Adam(meta.parameters(), lr=outer_lr)
+    optimizer = torch.optim.AdamW(meta.parameters(), lr=outer_lr)
 
     # meta-training
     train_losses, test_losses = meta_train(
         meta,
         train_dataset,
+        test_train_dataset,
         test_dataset,
         criterion,
         optimizer,

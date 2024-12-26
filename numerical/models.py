@@ -71,17 +71,19 @@ class LSTM(nn.Module):
         self, n_input: int = 16, n_output: int = 1, n_hidden: int = 64, n_layers=2
     ):
         super(LSTM, self).__init__()
-        self.lstm = nn.LSTM(n_input, n_hidden, num_layers=n_layers, batch_first=True)
+        self.layer_norm = nn.LayerNorm(n_input)
+        self.lstm = nn.LSTM(n_input, n_hidden, num_layers=n_layers, batch_first=True, dropout=0.1 if n_layers > 1 else 0.0)
         self.fc = nn.Linear(n_hidden, n_output)
 
     def forward(self, x):
+        x = self.layer_norm(x)
         out, _ = self.lstm(x)
         out = self.fc(out[:, -1, :])
         return out
 
 
 class PositionalEncoding(nn.Module):
-    def __init__(self, d_model, max_len=1024):
+    def __init__(self, d_model, max_len=64):
         super(PositionalEncoding, self).__init__()
         pe = torch.zeros(max_len, d_model)
         position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
@@ -107,8 +109,8 @@ class Transformer(nn.Module):
         d_model: int = 64,
         nhead: int = 4,
         num_layers: int = 2,
-        dim_feedforward: int = 64,
-        dropout: float = 0.1,
+        dim_feedforward: int = 4*64,
+        dropout: float = 0.0,
     ):
         super(Transformer, self).__init__()
 
@@ -125,6 +127,7 @@ class Transformer(nn.Module):
             dim_feedforward=dim_feedforward,
             dropout=dropout,
             batch_first=True,
+            norm_first=True
         )
         self.transformer_encoder = nn.TransformerEncoder(
             encoder_layer, num_layers=num_layers
@@ -148,7 +151,7 @@ def count_parameters(model):
 def main():
     cnn = CNN(1, [16, 8], 2)
     mlp = MLP(n_input=32 * 32, n_hidden=128, n_layers=10)
-    lstm = LSTM(n_hidden=64, n_layers=5)
+    lstm = LSTM(n_hidden=64, n_layers=2)
     transformer = Transformer(n_input=16)
 
     print(f"Number of parameters in MLP: {count_parameters(mlp):,}")

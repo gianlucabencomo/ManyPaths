@@ -18,94 +18,97 @@ from utils import set_random_seeds
 from visualize import plot_loss, plot_meta_test_results
 
 MLP_PARAMS = [
-    (16, 2),
-    (32, 2),
-    (64, 2),
-    (128, 2),
-    (16, 4),
-    (32, 4),
-    (64, 4),
-    (128, 4),
-    (16, 6),
-    (32, 6),
-    (64, 6),
-    (128, 6),
-    (16, 8),
-    (32, 8),
-    (64, 8),
-    (128, 8),
-    (16, 10),
-    (32, 10),
-    (64, 10),
-    (128, 10),
+    (16, 2),  # 0
+    (32, 2),  # 1
+    (64, 2),  # 2
+    (128, 2), # 3
+    (16, 4),  # 4
+    (32, 4),  # 5
+    (64, 4),  # 6
+    (128, 4), # 7, (3)
+    (16, 6),  # 8
+    (32, 6),  # 9
+    (64, 6),  # 10
+    (128, 6), # 11, (2)
+    (16, 8),  # 12
+    (32, 8),  # 13
+    (64, 8),  # 14
+    (128, 8), # 15, (1)
+    (16, 10), # 16
+    (32, 10), # 17
+    (64, 10), # 18
+    (128, 10),# 19
 ]
+
 CNN_PARAMS = [
-    ([16, 8], 2),
-    ([32, 16], 2),
-    ([64, 32], 2),
-    ([128, 64], 2),
-    ([16, 8], 4),
-    ([32, 16, 8], 4),
-    ([64, 32, 16], 4),
-    ([128, 64, 32], 4),
-    ([16, 8], 6),
-    ([32, 16, 8], 6),
-    ([64, 32, 16], 6),
-    ([128, 64, 32, 16], 6),
-    ([16, 8], 8),
-    ([32, 16, 8], 8),
-    ([64, 32, 16, 8], 8),
-    ([128, 64, 32, 16], 8),
-    ([16, 8], 10),
-    ([32, 16, 8], 10),
-    ([64, 32, 16, 8], 10),
-    ([128, 64, 32, 16], 10),
+    ([16, 8], 2),           # 0
+    ([32, 16], 2),          # 1
+    ([64, 32], 2),          # 2
+    ([128, 64], 2),         # 3
+    ([16, 8], 4),           # 4
+    ([32, 16, 8], 4),       # 5
+    ([64, 32, 16], 4),      # 6
+    ([128, 64, 32], 4),     # 7
+    ([16, 8], 6),           # 8
+    ([32, 16, 8], 6),       # 9
+    ([64, 32, 16], 6),      # 10, (3)
+    ([128, 64, 32, 16], 6), # 11
+    ([16, 8], 8),           # 12
+    ([32, 16, 8], 8),       # 13, (2)
+    ([64, 32, 16, 8], 8),   # 14
+    ([128, 64, 32, 16], 8), # 15
+    ([16, 8], 10),          # 16
+    ([32, 16, 8], 10),      # 17, (1)
+    ([64, 32, 16, 8], 10),  # 18
+    ([128, 64, 32, 16], 10),# 19
 ]
+
 LSTM_PARAMS = [
-    (16, 1),
-    (32, 1),
-    (64, 1),
-    (128, 1),
-    (16, 2),
-    (32, 2),
-    (64, 2),
-    (128, 2),
-    (16, 3),
-    (32, 3),
-    (64, 3),
-    (128, 3),
-    (16, 4),
-    (32, 4),
-    (64, 4),
-    (128, 4),
-    (16, 5),
-    (32, 5),
-    (64, 5),
-    (128, 5),
+    (16, 1),  # 0
+    (32, 1),  # 1
+    (64, 1),  # 2
+    (128, 1), # 3
+    (16, 2),  # 4
+    (32, 2),  # 5
+    (64, 2),  # 6, (1)
+    (128, 2), # 7
+    (16, 3),  # 8
+    (32, 3),  # 9, (3)
+    (64, 3),  # 10
+    (128, 3), # 11
+    (16, 4),  # 12
+    (32, 4),  # 13
+    (64, 4),  # 14
+    (128, 4), # 15
+    (16, 5),  # 16
+    (32, 5),  # 17, (2)
+    (64, 5),  # 18
+    (128, 5), # 19
 ]
+
 TRANSFORMER_PARAMS = [
-    (16, 1),
-    (32, 1),
-    (64, 1),
-    (128, 1),
-    (16, 2),
-    (32, 2),
-    (64, 2),
-    (128, 2),
-    (16, 3),
-    (32, 3),
-    (64, 3),
-    (128, 3),
-    (16, 4),
-    (32, 4),
-    (64, 4),
-    (128, 4),
-    (16, 5),
-    (32, 5),
-    (64, 5),
-    (128, 5),
+    (16, 1),  # 0
+    (32, 1),  # 1
+    (64, 1),  # 2
+    (128, 1), # 3
+    (16, 2),  # 4
+    (32, 2),  # 5
+    (64, 2),  # 6
+    (128, 2), # 7
+    (16, 3),  # 8
+    (32, 3),  # 9
+    (64, 3),  # 10
+    (128, 3), # 11
+    (16, 4),  # 12
+    (32, 4),  # 13
+    (64, 4),  # 14
+    (128, 4), # 15
+    (16, 5),  # 16
+    (32, 5),  # 17
+    (64, 5),  # 18
+    (128, 5), # 19
 ]
-models = ["cnn", "mlp", "transformer", "lstm",]
+models = ["transformer", "lstm", "cnn", "mlp"]
 skips = [1]
 indices = np.arange(20)
 
@@ -116,7 +119,8 @@ def evaluate(
     meta.train()
     meta_loss, results = 0.0, []
     for task in dataset.tasks:
-        X_s, X_num_s, y_s, X_q, X_num_q, y_q, m = task
+        idx = torch.randint(0, len(task), size=(1,)).item()
+        X_s, X_num_s, y_s, X_q, X_num_q, y_q, m = task[idx]
         X_s, y_s, X_q, y_q = (
             X_s.to(device),
             y_s.to(device),
@@ -210,20 +214,19 @@ def meta_train(
             test_loss = evaluate(
                 meta, test_dataset, criterion, device, [0, adaptation_steps]
             )
+            # append
             train_losses.append(train_loss)
             test_losses.append(test_loss)
 
     return train_losses, test_losses
 
 
-def init_dataset_and_model(model, skip, index):
-    n_input = 1024 if model == "mlp" else 16
-
-    # init datasets
+def init_dataset(model, skip):
     train_dataset = MetaImageModuloDataset(
         n_tasks=20,
         n_samples_per_task=20,
         range_max=100,
+        n_samples=1000,
         skip=skip,
         train=True,
         model=model,
@@ -232,6 +235,7 @@ def init_dataset_and_model(model, skip, index):
         n_tasks=20,
         n_samples_per_task=20,
         range_max=100,
+        n_samples=1,
         skip=skip,
         train=False,
         model=model,
@@ -240,14 +244,19 @@ def init_dataset_and_model(model, skip, index):
         n_tasks=20,
         n_samples_per_task=20,
         range_max=100,
+        n_samples=1,
         skip=skip,
         train=True,
         model=model,
     )
 
+    return train_dataset, test_dataset, test_train_dataset
+
+def init_model(model, index):
+    n_input = 1024 if model == "mlp" else 16
     if model == "mlp":
         n_hidden, n_layers = MLP_PARAMS[index]
-        model = MLP(n_input=n_input, n_hidden=n_hidden)
+        model = MLP(n_input=n_input, n_hidden=n_hidden, n_layers=n_layers)
     elif model == "cnn":
         n_hiddens, n_layers = CNN_PARAMS[index]
         model = CNN(n_hiddens=n_hiddens, n_layers=n_layers)
@@ -259,15 +268,13 @@ def init_dataset_and_model(model, skip, index):
         model = Transformer(
             n_input=n_input,
             d_model=n_hidden,
-            dim_feedforward=n_hidden,
+            dim_feedforward=4*n_hidden,
             num_layers=n_layers,
         )
-
-    return train_dataset, test_dataset, test_train_dataset, model
-
+    return model
 
 def main(
-    seed: int = 10e3,
+    seed: int = 100,
     epochs: int = 100,
     tasks_per_meta_batch: int = 4,  # static
     adaptation_steps: int = 1,  # train [1] test [0, 1]
@@ -276,44 +283,42 @@ def main(
 ):
     # init dataset and model
     results = []
-    for i, (m, skip, index) in enumerate(
-        (m, skip, index) for m in models for index in indices for skip in skips
-    ):
+    for m in models: 
         device = torch.device("cuda" if torch.cuda.is_available() else ("cpu" if m in ['mlp', 'lstm'] else 'mps'))
-        set_random_seeds(seed)
-        train_dataset, test_dataset, test_train_dataset, model = init_dataset_and_model(
-            m, skip, index
-        )
+        train_dataset, test_dataset, test_train_dataset = init_dataset(m, skips[0])
+        for index in indices:
+            set_random_seeds(seed)
+            model = init_model(m, index)
 
-        # init meta-learner, loss, and meta-optimizer
-        model = model.to(device)
-        meta = l2l.algorithms.MetaSGD(model, lr=inner_lr, first_order=False).to(device)
-        criterion = nn.MSELoss()
-        optimizer = torch.optim.Adam(meta.parameters(), lr=outer_lr)
+            # init meta-learner, loss, and meta-optimizer
+            model = model.to(device)
+            meta = l2l.algorithms.MetaSGD(model, lr=inner_lr, first_order=False).to(device)
+            criterion = nn.MSELoss()
+            optimizer = torch.optim.AdamW(meta.parameters(), lr=outer_lr)
 
-        # meta-training
-        train_losses, test_losses = meta_train(
-            meta,
-            train_dataset,
-            test_train_dataset,
-            test_dataset,
-            criterion,
-            optimizer,
-            device,
-            epochs,
-            tasks_per_meta_batch,
-            adaptation_steps,
-        )
-        print(
-            f"Results: Model={m}, Skip={skip}, Parameter Index={index}, Train Loss={min(train_losses):.3f}, Test Loss={min(test_losses):.3f}"
-        )
-        results.append((m, skip, index, min(train_losses), min(test_losses)))
-        try:
-            dtype = [('m', 'U50'), ('skip', 'i4'), ('index', 'i4'), ('min_train_loss', 'f4'), ('min_test_loss', 'f4')]
-            structured_array = np.array(results, dtype=dtype)
-            np.savez(f'search_results_{epochs}_{seed}.npz', results=structured_array)
-        except:
-            print("Error Saving Search Results...")
+            # meta-training
+            train_losses, test_losses = meta_train(
+                meta,
+                train_dataset,
+                test_train_dataset,
+                test_dataset,
+                criterion,
+                optimizer,
+                device,
+                epochs,
+                tasks_per_meta_batch,
+                adaptation_steps,
+            )
+            print(
+                f"Results: Model={m}, Skip={skips[0]}, Parameter Index={index}, Train Loss={min(train_losses):.3f}, Test Loss={min(test_losses):.3f}"
+            )
+            results.append((m, skips[0], index, min(train_losses), min(test_losses)))
+            try:
+                dtype = [('m', 'U50'), ('skip', 'i4'), ('index', 'i4'), ('min_train_loss', 'f4'), ('min_test_loss', 'f4')]
+                structured_array = np.array(results, dtype=dtype)
+                np.savez(f'search_results_{epochs}_{seed}.npz', results=structured_array)
+            except:
+                print("Error Saving Search Results...")
 
     def get_top_5_indices(results_list):
         top_5_train = {}

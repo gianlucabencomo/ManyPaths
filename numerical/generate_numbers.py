@@ -339,16 +339,8 @@ def generate_number_grid(number):
     tens = number // 10
     units = number % 10
 
-    # Map digits to black-and-white squares
-    for row in range(32):
-        for col in range(32):
-            # color = 255
-            if col < 32 // 2:
-                n = tens
-                grid_image[row, col] = color[n, row, col]
-            else:
-                n = units
-                grid_image[row, col] = color[n, row, col - 16]
+    grid_image[:, :16] = color[tens]
+    grid_image[:, 16:] = color[units]
 
     return grid_image
 
