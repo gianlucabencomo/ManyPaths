@@ -1,5 +1,6 @@
 import typer
 import os
+import time
 import numpy as np
 
 import torch
@@ -14,7 +15,7 @@ from models import MLP, CNN, LSTM, Transformer
 from utils import set_random_seeds
 from visualize import plot_loss, plot_meta_test_results
 
-MLP_PARAMS = (64, 4)
+MLP_PARAMS = (64, 8)
 CNN_PARAMS = ([16, 8], 8)
 LSTM_PARAMS = (64, 2)
 TRANSFORMER_PARAMS = (64, 2)
@@ -94,6 +95,7 @@ def meta_train(
     meta.train()
     train_losses, test_losses = [], []
     for epoch in range(epochs):
+        start = time.time()
         for i, (X_s, y_s, X_q, y_q) in enumerate(train_loader):
             X_s, y_s, X_q, y_q = (
                 X_s.to(device),
@@ -129,7 +131,7 @@ def meta_train(
         train_losses.append(train_loss)
         test_losses.append(test_loss)
         print(
-            f"Epoch {epoch + 1}/{epochs}, Meta-Train Loss: {train_loss:.4f}, Meta-Test Loss: {test_loss:.4f}"
+            f"Epoch {epoch + 1}/{epochs}, Meta-Train Loss: {train_loss:.4f}, Meta-Test Loss: {test_loss:.4f} ({time.time() - start:.2f}s)"
         )
     return train_losses, test_losses
 
