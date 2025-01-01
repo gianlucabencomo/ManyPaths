@@ -8,4 +8,4 @@ def set_random_seeds(seed: int = 0):
     random.seed(seed)
     torch.manual_seed(seed)
     if torch.cuda.is_available():
-        torch.cuda.manual_seed(seed) # 1 gpu
+        torch.cuda.manual_seed(seed)  # 1 gpu

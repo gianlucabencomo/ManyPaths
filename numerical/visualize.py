@@ -1,13 +1,15 @@
+import typer
+
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
+from scipy.stats import t
 
 STEPS = [0, 1]
 
-
-def plot_loss(train_losses, test_losses, skip: int = 10):
+def plot_loss(train_losses, test_losses):
     # Plot meta-training loss
-    epochs = np.arange(len(train_losses)) * skip
+    epochs = np.arange(len(train_losses))
     plt.plot(epochs, train_losses, label="Meta-Train Loss")
     plt.plot(epochs, test_losses, label="Meta-Test Loss")
     plt.xlabel("Epoch")
@@ -89,3 +91,92 @@ def plot_meta_test_losses(results):
     plt.plot(ms, post_loss, "o-", label="Post-Adaptation")
     plt.legend()
     plt.tight_layout()
+
+xticks = {
+    'mlp': ["2", "4", "6", "8"],
+    'cnn': ["2", "4", "6", "8"],
+    'lstm': ["1", "2", "3", "4"],
+    'transformer': ["1", "2", "3", "4"]
+}
+yticks = {
+    'mlp': ["8", "16", "32", "64"],
+    'cnn': ["8", "16", "32", "64"],
+    'lstm': ["8", "16", "32", "64"],
+    'transformer': ["8", "16", "32", "64"]
+}
+
+def visualize_hyperparameter_search(file_paths):
+    # Initialize storage for aggregated results
+    aggregated_results = {}
+
+    # Process each seed file
+    for file_path in file_paths:
+        seed = file_path.split("_")[-1].split(".")[0]  # Extract seed from the file name
+        data = np.load(file_path, allow_pickle=True)
+        results = data['results']
+
+        # Group results by model type and index
+        for entry in results:
+            model = entry['m']
+            index = entry['index']
+            train_loss = entry['min_train_loss']
+            
+            if model not in aggregated_results:
+                aggregated_results[model] = {}
+            if index not in aggregated_results[model]:
+                aggregated_results[model][index] = []
+            
+            aggregated_results[model][index].append(train_loss)
+
+    # Create plots for the average values of the 5 seeds
+    for model, results in aggregated_results.items():
+        # Create a 4x4 matrix for mean train loss and confidence intervals
+        mean_matrix = np.full((4, 4), np.nan)
+        ci_matrix = np.full((4, 4), np.nan)
+        for index, losses in results.items():
+            row, col = divmod(index, 4)
+            mean_matrix[row, col] = np.mean(losses)
+            
+            # Calculate 95% confidence interval
+            if len(losses) > 1:  # CI is only meaningful with more than one sample
+                sem = np.std(losses, ddof=1) / np.sqrt(len(losses))  # Standard error of the mean
+                ci = t.ppf(0.975, len(losses) - 1) * sem  # 95% confidence interval
+                ci_matrix[row, col] = ci
+            else:
+                ci_matrix[row, col] = 0  # If only one sample, CI is 0
+
+        # Plot the 4x4 matrix for the model
+        plt.figure(figsize=(8, 6))
+        plt.imshow(mean_matrix, cmap='coolwarm', interpolation='nearest', vmin=0, vmax=15)
+        plt.colorbar(label='Average MSE')
+        plt.title(f"{model.upper()} - Average of 5 Seeds with 95% CI")
+        plt.xlabel('Parameter Index Column')
+        plt.ylabel('Parameter Index Row')
+        plt.xticks(range(4), xticks[model])
+        plt.yticks(range(4), yticks[model])
+
+        # Annotate each cell with mean ± CI
+        for i in range(4):
+            for j in range(4):
+                mean_value = mean_matrix[i, j]
+                ci_value = ci_matrix[i, j]
+                if not np.isnan(mean_value):  # Only annotate valid cells
+                    annotation = f"{mean_value:.2f} ± {ci_value:.2f}"
+                    plt.text(
+                        j,
+                        i,
+                        annotation,
+                        ha="center",
+                        va="center",
+                        color="black",
+                        fontsize=10,
+                    )
+
+def main(base_path: str = "./search_results_10_"):
+    seed_list = [100, 101, 102, 103]
+    file_paths = [f"{base_path}{seed}.npz" for seed in seed_list]  # Construct file paths
+    visualize_hyperparameter_search(file_paths)
+    plt.show()
+
+if __name__ == '__main__':
+    typer.run(main)

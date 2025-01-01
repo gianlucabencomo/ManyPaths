@@ -318,17 +318,7 @@ color[8] = (
 color[9] = np.flip(color[6])
 
 
-def generate_number_grid(number):
-    """
-    Generate a 32x32 grid image with a given number displayed using alternating black and white squares.
-
-    Args:
-        number (int): Number to display (0-99).
-        grid_size (int): Size of the image (default is 32x32).
-
-    Returns:
-        np.ndarray: A 2D NumPy array representing the grid image.
-    """
+def generate_number_grid(number, translate_random: bool = False):
     if not (0 <= number <= 99):
         raise ValueError("Number must be between 0 and 99.")
 
@@ -339,19 +329,29 @@ def generate_number_grid(number):
     tens = number // 10
     units = number % 10
 
-    grid_image[:, :16] = color[tens]
-    grid_image[:, 16:] = color[units]
+    if translate_random:
+        x, y = np.random.randint(3, size=2)
+        grid_image[(2 - y):(32 - y), (2 - x):(16 - x)] = color[tens][1:31,1:15]
+        x, y = np.random.randint(2, size=2)
+        grid_image[(2 - y):(32 - y), (18 - x):(32 - x)] = color[units][1:31,1:15]
+    else:
+        grid_image[:, :16] = color[tens]
+        grid_image[:, 16:] = color[units]
 
     return grid_image
 
 
 if __name__ == "__main__":
-    # Example usage
-    number = 45  # Replace with any number from 0 to 99
-    grid_image = generate_number_grid(number)
+    fig, axes = plt.subplots(2, 4, figsize=(7, 5))
+    for i in range(8):
+        number = (i+1) * 4
+        bits = [int(x) for x in f"{number:08b}"]
+        grid_image = generate_number_grid(number)
+        ax = axes[i // 4, i % 4]
+        ax.imshow(grid_image, cmap="magma", interpolation="nearest")
+        ax.axis("off")
+        ax.set_title(f"{number}", fontsize=16)
+        ax.text(0.5, -0.1, f"{bits[7]}{bits[6]}{bits[5]}{bits[4]}{bits[3]}{bits[2]}{bits[1]}{bits[0]}", ha='center', va='center', transform=ax.transAxes, fontsize=16)
 
-    # Display the grid
-    plt.imshow(grid_image, cmap="gray", interpolation="nearest")
-    plt.axis("off")
-    plt.title(f"Number {number} as a 32x32 Grid")
+    plt.tight_layout()
     plt.show()
