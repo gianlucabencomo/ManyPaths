@@ -236,8 +236,7 @@ def main(
     model = init_model(m, data_type)
     train_dataset, test_dataset, val_dataset = init_dataset(m, data_type, n_samples_per_task, skip)
     
-    train_loader = DataLoader(train_dataset, batch_size=tasks_per_meta_batch, shuffle=True, drop_last=True)
-
+    train_loader = DataLoader(train_dataset, batch_size=tasks_per_meta_batch, shuffle=True, drop_last=True, pin_memory=(device == "cuda:0"))
 
     # init meta-learner, loss, and meta-optimizer
     model = model.to(device)
