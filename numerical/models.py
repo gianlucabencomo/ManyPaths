@@ -79,22 +79,18 @@ class LSTMCell(nn.Module):
             self.gates_norm = nn.LayerNorm(4 * n_hidden)
 
     def forward(self, x, h, c):
-        _, seq_len, _ = x.size()
-        h_seq = []
-        for t in range(seq_len):
-            z = torch.cat((h, x[:, t, :]), dim=-1)
-            gates = self.gates(z)
-            if self.use_layer_norm:
-                gates = self.gates_norm(gates)
-            f, i, c_hat, o = gates.chunk(4, dim=1)
-            f, i, o = torch.sigmoid(f), torch.sigmoid(i), torch.sigmoid(o)
-            c_hat = torch.tanh(c_hat)
+        z = torch.cat((h, x), dim=1)  # (batch_size, n_hidden + n_input)
+ 
+        gates = self.gates(z)
+        if self.use_layer_norm:
+            gates = self.gates_norm(gates)
+        f, i, c_hat, o = gates.chunk(4, dim=1)
+        f, i, o = torch.sigmoid(f), torch.sigmoid(i), torch.sigmoid(o)
+        c_hat = torch.tanh(c_hat)
 
-            c = f * c + i * c_hat
-            h = o * torch.tanh(c)
-            h_seq.append(h)
-        h_seq = torch.stack(h_seq, dim=1)  # (batch_size, seq_len, n_hidden)
-        return h_seq, h, c
+        c = f * c + i * c_hat
+        h = o * torch.tanh(c)
+        return h, c
 
 class LSTM(nn.Module):
     def __init__(
@@ -109,15 +105,19 @@ class LSTM(nn.Module):
         self.fc = nn.Linear(n_hidden, n_output)
 
     def forward(self, x):
-        batch_size, _, _ = x.size()
+        batch_size, seq_len, _ = x.size()
 
         h = [torch.zeros(batch_size, self.n_hidden, device=x.device) for _ in range(self.n_layers)]
         c = [torch.zeros(batch_size, self.n_hidden, device=x.device) for _ in range(self.n_layers)]
 
-        for layer in range(self.n_layers):
-            x, h[layer], c[layer] = self.lstm[layer](x, h[layer], c[layer])
+        for t in range(seq_len):
+            input_t = x[:, t, :]  # Extract input for time step t
+            for layer in range(self.n_layers):
+                h[layer], c[layer] = self.lstm[layer](input_t, h[layer], c[layer])
+                input_t = h[layer]  # Pass hidden state to the next layer
 
-        out = self.fc(x[:, -1, :])
+        # Use the last hidden state from the final layer
+        out = self.fc(h[-1])  # (batch_size, n_output)
         return out
 
 # class LSTM(nn.Module):
