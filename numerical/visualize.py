@@ -173,7 +173,7 @@ def visualize_hyperparameter_search(file_paths):
                     )
 
 def main(base_path: str = "./search_results_10_"):
-    seed_list = [100, 101, 102, 103]
+    seed_list = [100, 101, 102, 103, 104]
     file_paths = [f"{base_path}{seed}.npz" for seed in seed_list]  # Construct file paths
     visualize_hyperparameter_search(file_paths)
     plt.show()

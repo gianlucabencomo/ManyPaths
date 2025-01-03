@@ -16,8 +16,8 @@ from models import MLP, CNN, LSTM, Transformer
 from utils import set_random_seeds
 from visualize import plot_loss, plot_meta_test_results
 
-MLP_PARAMS = (64, 6)
-CNN_PARAMS = ([64, 32, 16, 8], 8)
+MLP_PARAMS = (64, 6) # F
+CNN_PARAMS = ([128, 64, 32, 16], 8) # F
 LSTM_PARAMS = (64, 2)
 TRANSFORMER_PARAMS = (64, 2)
 

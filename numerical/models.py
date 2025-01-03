@@ -78,7 +78,7 @@ class LSTMCell(nn.Module):
         if self.use_layer_norm:
             self.gates_norm = nn.LayerNorm(4 * n_hidden)
 
-    def forward(self, x, h, c):
+    def forward(self, x: torch.Tensor, h: torch.Tensor, c: torch.Tensor):
         z = torch.cat((h, x), dim=1)  # (batch_size, n_hidden + n_input)
  
         gates = self.gates(z)
@@ -119,28 +119,6 @@ class LSTM(nn.Module):
         # Use the last hidden state from the final layer
         out = self.fc(h[-1])  # (batch_size, n_output)
         return out
-
-# class LSTM(nn.Module):
-#     def __init__(
-#         self, n_input: int = 16, n_output: int = 1, n_hidden: int = 64, n_layers=2
-#     ):
-#         super(LSTM, self).__init__()
-#         self.layer_norm = nn.LayerNorm(n_input)
-#         self.lstm = nn.LSTM(
-#             n_input,
-#             n_hidden,
-#             num_layers=n_layers,
-#             batch_first=True,
-#             dropout=0.0,
-#         )
-#         self.fc = nn.Linear(n_hidden, n_output)
-
-#     def forward(self, x):
-#         x = self.layer_norm(x)
-#         out, _ = self.lstm(x)
-#         out = self.fc(out[:, -1, :])
-#         return out
-
 
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model, max_len=64):
@@ -301,6 +279,7 @@ def main():
         if n_transformer < transformer_min:
             transformer_min = n_transformer
 
+    print(cnn_values[-1])
     print(f"Number of parameters in MLP: min = {mlp_min}, max = {mlp_max}")
     print(f"Number of parameters in CNN: min = {cnn_min}, max = {cnn_max}")
     print(f"Number of parameters in LSTM: min = {lstm_min}, max = {lstm_max}")
