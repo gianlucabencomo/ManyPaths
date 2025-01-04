@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from typing import List
 import math
 from matplotlib.ticker import FuncFormatter
@@ -7,6 +8,8 @@ from matplotlib.ticker import FuncFormatter
 import numpy as np
 import matplotlib.pyplot as plt
 
+from typing import Optional
+import copy
 
 class CNN(nn.Module):
     def __init__(
@@ -124,9 +127,9 @@ class PositionalEncoding(nn.Module):
     def __init__(self, d_model, max_len=64):
         super(PositionalEncoding, self).__init__()
         pe = torch.zeros(max_len, d_model)
-        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
+        position = torch.arange(0, max_len).unsqueeze(1)
         div_term = torch.exp(
-            torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model)
+            torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model)
         )
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
@@ -135,9 +138,49 @@ class PositionalEncoding(nn.Module):
 
     def forward(self, x):
         seq_len = x.size(1)
-        x = x + self.pe[:, :seq_len, :]
+        x = x + self.pe[:, :seq_len].requires_grad_(False)
         return x
+    
+class TransformerEncoderLayer(nn.Module):
+    def __init__(
+        self,
+        d_model: int,
+        nhead: int,
+        dim_feedforward: int = 128,
+    ):
+        super().__init__()
+        self.self_attn = nn.MultiheadAttention(
+            embed_dim=d_model,
+            num_heads=nhead,
+            dropout=0.0,
+            batch_first=True
+        )
 
+        # Two-layer FeedForward network
+        self.linear1 = nn.Linear(d_model, dim_feedforward)
+        self.linear2 = nn.Linear(dim_feedforward, d_model)
+
+        # LayerNorms
+        self.norm1 = nn.LayerNorm(d_model)
+        self.norm2 = nn.LayerNorm(d_model)
+
+    def forward(
+        self,
+        src: torch.Tensor,
+        src_mask: Optional[torch.Tensor] = None,
+        src_key_padding_mask: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        src2 = self.norm1(src)
+        attn_output, _ = self.self_attn(
+                src2, src2, src2,
+                attn_mask=src_mask,
+                key_padding_mask=src_key_padding_mask
+            )
+        src = src + attn_output
+        src2 = self.norm2(src)
+        ff_output = self.linear2(torch.relu(self.linear1(src2)))
+        src = src + ff_output
+        return src
 
 class Transformer(nn.Module):
     def __init__(
@@ -148,7 +191,6 @@ class Transformer(nn.Module):
         nhead: int = 4,
         num_layers: int = 2,
         dim_feedforward: int = 2 * 64,
-        dropout: float = 0.0,
     ):
         super(Transformer, self).__init__()
 
@@ -159,27 +201,24 @@ class Transformer(nn.Module):
         self.pos_encoder = PositionalEncoding(d_model)
 
         # Transformer encoder layers
-        encoder_layer = nn.TransformerEncoderLayer(
+        layer = TransformerEncoderLayer(
             d_model=d_model,
             nhead=nhead,
             dim_feedforward=dim_feedforward,
-            dropout=dropout,
-            batch_first=True,
-            norm_first=True,
         )
-        self.transformer_encoder = nn.TransformerEncoder(
-            encoder_layer, num_layers=num_layers
-        )
+        self.encoder = nn.ModuleList([copy.deepcopy(layer) for _ in range(num_layers)])
 
-        # Final linear layer
-        self.fc = nn.Linear(d_model, n_output)
+        self.decoder = nn.Linear(d_model, n_output)
 
     def forward(self, x):
         x = self.input_proj(x)
         x = self.pos_encoder(x)
-        out = self.transformer_encoder(x)
-        out = self.fc(out[:, -1, :])
+        for layer in self.encoder: 
+            x = layer(x)
+        out = self.decoder(x[:, -1, :])
         return out
+
+
 
 
 def count_parameters(model):
