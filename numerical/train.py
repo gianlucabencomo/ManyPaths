@@ -19,7 +19,7 @@ from visualize import plot_loss, plot_meta_test_results
 MLP_PARAMS = (64, 6) # F
 CNN_PARAMS = ([128, 64, 32, 16], 8) # F
 LSTM_PARAMS = (64, 2)
-TRANSFORMER_PARAMS = (64, 2)
+TRANSFORMER_PARAMS = (64, 4) # F
 
 
 def save_res(results, save_dir="results", file_prefix="meta_learning"):
