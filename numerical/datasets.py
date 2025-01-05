@@ -120,4 +120,4 @@ class MetaModuloDataset(Dataset):
         assert H % patch_size == 0 and W % patch_size == 0, "Image dimensions must be divisible by patch size"
         patches = image_batch.unfold(2, patch_size, patch_size).unfold(3, patch_size, patch_size)
         patches = patches.reshape(B, C, -1, patch_size, patch_size).permute(0, 2, 1, 3, 4)
-        return patches.reshape(B, -1, patch_size * patch_size)
+        return patches.reshape(B, -1, C * patch_size * patch_size)
