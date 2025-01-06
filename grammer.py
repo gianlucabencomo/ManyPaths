@@ -1,3 +1,6 @@
+# -----
+# This script was pulled directly from [https://arxiv.org/abs/2402.07035] without modification.
+# -----
 import math
 import numpy as np
 import random

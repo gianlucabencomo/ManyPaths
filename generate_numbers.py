@@ -318,7 +318,7 @@ color[8] = (
 color[9] = np.flip(color[6])
 
 
-def generate_number_grid(number, translate_random: bool = False):
+def generate_number_grid(number: int, translate_random: bool = False):
     if not (0 <= number <= 99):
         raise ValueError("Number must be between 0 and 99.")
 
@@ -340,18 +340,22 @@ def generate_number_grid(number, translate_random: bool = False):
 
     return grid_image
 
-
-if __name__ == "__main__":
-    fig, axes = plt.subplots(2, 4, figsize=(7, 5))
-    for i in range(8):
-        number = (i+1) * 4
+def plot():
+    fig, axes = plt.subplots(2, 8, figsize=(14, 5))
+    for i in range(16):
+        number = (i+1) * 3
         bits = [int(x) for x in f"{number:08b}"]
         grid_image = generate_number_grid(number)
-        ax = axes[i // 4, i % 4]
+        ax = axes[i // 8, i % 8]
         ax.imshow(grid_image, cmap="magma", interpolation="nearest")
         ax.axis("off")
-        ax.set_title(f"{number}", fontsize=16)
-        ax.text(0.5, -0.1, f"{bits[7]}{bits[6]}{bits[5]}{bits[4]}{bits[3]}{bits[2]}{bits[1]}{bits[0]}", ha='center', va='center', transform=ax.transAxes, fontsize=16)
+        ax.set_title(f"{number}", fontsize=20)
+        ax.text(0.5, -0.18, f"{bits[7]}{bits[6]}{bits[5]}{bits[4]}{bits[3]}{bits[2]}{bits[1]}{bits[0]}", ha='center', va='center', transform=ax.transAxes, fontsize=20)
 
-    plt.tight_layout()
-    plt.show()
+    plt.tight_layout(pad=0)
+    output_path = "number_grid.pdf"
+    plt.savefig(output_path, format="pdf", dpi=300, bbox_inches='tight')
+    plt.close(fig)
+
+if __name__ == "__main__":
+    plot()

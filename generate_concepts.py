@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def generate_concept(bits):
+def generate_concept(bits, scale: float = 1.0):
     if not (len(bits) == 4):
         raise ValueError("Bits must be length 4.")
 
@@ -27,11 +27,10 @@ def generate_concept(bits):
                 for j in range(0, 32, 2):
                     if grid_image[i,j,color].any() == 0:
                         grid_image[i,j,color] = 200
-
+    grid_image = grid_image / scale
     return grid_image
 
-
-if __name__ == "__main__":
+def plot():
     fig, axes = plt.subplots(2, 8, figsize=(14, 5))
     for i in range(16):
         bits = [int(x) for x in f"{i:04b}"]
@@ -39,7 +38,12 @@ if __name__ == "__main__":
         ax = axes[i // 8, i % 8]
         ax.imshow(grid_image, interpolation="nearest")
         ax.axis("off")
-        ax.set_title(f"{bits[0]}{bits[1]}{bits[2]}{bits[3]}")
+        ax.set_title(f"{bits[0]}{bits[1]}{bits[2]}{bits[3]}", fontsize=20)
 
-    plt.tight_layout()
-    plt.show()
+    plt.tight_layout(pad=0)
+    output_path = "concept_grid.pdf"
+    plt.savefig(output_path, format="pdf", dpi=300, bbox_inches='tight')
+    plt.close(fig)
+
+if __name__ == "__main__":
+    plot()
