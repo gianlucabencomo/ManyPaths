@@ -58,7 +58,7 @@ class MetaBitConceptsDataset(BaseMetaDataset):
             labels = [hyp.function(f) for f in FEATURE_VALUES]
             for i in range(len(labels) - 1):
                 if labels[i] != labels[i + 1]:
-                    m = np.random.randint(1, high=self.n_samples_per_task)
+                    m = np.random.randint(2, high=self.n_samples_per_task)
                     inds = np.random.choice(16, size=(m,))
                     X_s = X_q[inds]
                     X_image_s = X_image_q[inds]
@@ -76,7 +76,7 @@ class MetaBitConceptsDataset(BaseMetaDataset):
             labels = [hyp.function(f) for f in FEATURE_VALUES]
             for i in range(len(labels) - 1):
                 if labels[i] != labels[i + 1]:
-                    m = np.random.randint(1, high=self.n_samples_per_task)
+                    m = np.random.randint(2, high=self.n_samples_per_task)
                     inds = np.random.choice(16, size=(m,))
                     X_s = torch.tensor(FEATURE_VALUES[inds], dtype=torch.float)
                     y_s = torch.tensor(labels, dtype=torch.float).unsqueeze(1)[inds]

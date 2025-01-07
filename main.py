@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from training import meta_train, hyper_search
 from evaluation import evaluate
 from initialization import init_dataset, init_model
-from utils import set_random_seeds, save_model
+from utils import set_random_seeds, save_model, get_collate
 from visualize import plot_loss, plot_meta_test_results
 from constants import *
 
@@ -38,8 +38,9 @@ def main(
 
     set_random_seeds(seed)
     # init dataset
+    collate_fn = get_collate(experiment, device)
     train_dataset, test_dataset, val_dataset = init_dataset(experiment, m, data_type, n_samples_per_task, skip)    
-    train_loader = DataLoader(train_dataset, batch_size=tasks_per_meta_batch, shuffle=True, drop_last=True, pin_memory=(device == "cuda:0"))
+    train_loader = DataLoader(train_dataset, batch_size=tasks_per_meta_batch, shuffle=True, drop_last=True, pin_memory=(device == "cuda:0"), collate_fn=collate_fn)
 
     channels = 3 if experiment == "concept" else 1
     bits = 4 if experiment == "concept" else 8

@@ -14,6 +14,7 @@ from constants import CNN_PARAMS, MLP_PARAMS, LSTM_PARAMS, TRANSFORMER_PARAMS
 class CNN(nn.Module):
     def __init__(
         self,
+        n_input_channels: int = 1,
         n_output: int = 1,
         n_hiddens: List[int] = [64, 32, 16],
         n_layers: int = 5,
@@ -22,7 +23,7 @@ class CNN(nn.Module):
         n_penultimate = int(n_hiddens[-1] * (32 / 2 ** len(n_hiddens)) ** 2)
         layers = []
         for i, n_hidden in enumerate(n_hiddens):
-            layers.append(nn.Conv2d(1 if i == 0 else n_hiddens[i - 1], n_hidden, 3, 1, 1))
+            layers.append(nn.Conv2d(n_input_channels if i == 0 else n_hiddens[i - 1], n_hidden, 3, 1, 1))
             layers.append(nn.BatchNorm2d(n_hidden))
             layers.append(nn.ReLU())
             layers.append(nn.AvgPool2d(2))
@@ -256,15 +257,15 @@ def plot_parameter_ranges(cnn_range, mlp_range, lstm_range, transformer_range, c
     plt.show()
 
 def main(index: int = 3):
+    C = [1, 1, 1, 1, 3]
     counts_mlp = [1, 4, 8, 32 * 32 * 1, 32 * 32 * 3]
     counts_seq = [1, 1, 1, 16, 48]
 
     cnn_max, mlp_max, lstm_max, transformer_max = 0, 0, 0, 0
     cnn_min, mlp_min, lstm_min, transformer_min = np.inf, np.inf, np.inf, np.inf
     cnn_values, mlp_values, lstm_values, transformer_values = [], [], [], []
-    C = 1
     for i in range(len(CNN_PARAMS)):
-        cnn = CNN(1, CNN_PARAMS[i][0], CNN_PARAMS[i][1])
+        cnn = CNN(C[index], 1, CNN_PARAMS[i][0], CNN_PARAMS[i][1])
         mlp = MLP(n_input=counts_mlp[index], n_hidden=MLP_PARAMS[i][0], n_layers=MLP_PARAMS[i][1])
         lstm = LSTM(n_input=counts_seq[index], n_hidden=LSTM_PARAMS[i][0], n_layers=LSTM_PARAMS[i][1])
         transformer = Transformer(

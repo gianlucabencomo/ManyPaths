@@ -32,12 +32,6 @@ def meta_train(
     for epoch in range(epochs):
         start = time.time()
         for i, (X_s, y_s, X_q, y_q) in enumerate(train_loader):
-            X_s, y_s, X_q, y_q = (
-                X_s.to(device),
-                y_s.to(device),
-                X_q.to(device),
-                y_q.to(device),
-            )
             optimizer.zero_grad()
             meta_loss = 0.0
             for t in range(tasks_per_meta_batch):

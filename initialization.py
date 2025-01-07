@@ -62,7 +62,7 @@ def init_model(m, data_type, index, verbose: bool = False, channels: int = 1, bi
         model = MLP(n_input=n_input, n_hidden=n_hidden, n_layers=n_layers)
     elif m == "cnn":
         n_hidden, n_layers = CNN_PARAMS[index]
-        model = CNN(n_hiddens=n_hidden, n_layers=n_layers)
+        model = CNN(n_input_channels=channels, n_hiddens=n_hidden, n_layers=n_layers)
     elif m == "lstm":
         n_hidden, n_layers = LSTM_PARAMS[index]
         model = LSTM(n_input=n_input, n_hidden=n_hidden, n_layers=n_layers)
