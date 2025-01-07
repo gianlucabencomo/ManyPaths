@@ -2,6 +2,7 @@ import torch
 import numpy as np
 from utils import calculate_accuracy
 
+
 def evaluate(meta, dataset, criterion, device, adaptation_steps, return_results=False):
     meta.train()
     meta_loss, meta_acc, results = 0.0, [], []
@@ -42,7 +43,7 @@ def evaluate(meta, dataset, criterion, device, adaptation_steps, return_results=
             }
         )
         meta_acc.append(accs[:][1])
-        meta_loss += losses[1]  # adaptation step = 1
+        meta_loss += losses[1]
 
     meta_loss /= len(dataset.tasks)
     meta_acc = np.mean(meta_acc)
