@@ -14,15 +14,15 @@ from utils import set_random_seeds, save_model, get_collate
 from visualize import plot_loss, plot_meta_test_results
 from constants import *
 
+
 def main(
     seed: int = 0,
-    experiment: str = "mod", # ["mod", "concept"]
+    experiment: str = "mod",  # ["mod", "concept"]
     m: str = "mlp",  # ['mlp', 'cnn', 'lstm', 'transformer']
     data_type: str = "image",  # ['image', 'bits', 'number']
-    n_samples_per_task: int = 20,  # [20, 50, 100]
-    epochs: int = 1000,  # or until convergence
-    tasks_per_meta_batch: int = 4,  # static
-    adaptation_steps: int = 1,  # train [1] test [0, 1]
+    epochs: int = 1000,  # until convergence
+    tasks_per_meta_batch: int = 4,
+    adaptation_steps: int = 1,
     outer_lr: float = 1e-3,
     skip: int = 1,
     no_hyper_search: bool = False,
@@ -39,18 +39,40 @@ def main(
     set_random_seeds(seed)
     # init dataset
     collate_fn = get_collate(experiment, device)
-    train_dataset, test_dataset, val_dataset = init_dataset(experiment, m, data_type, n_samples_per_task, skip)    
-    train_loader = DataLoader(train_dataset, batch_size=tasks_per_meta_batch, shuffle=True, drop_last=True, pin_memory=(device == "cuda:0"), collate_fn=collate_fn)
+    train_dataset, test_dataset, val_dataset = init_dataset(
+        experiment, m, data_type, skip
+    )
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=tasks_per_meta_batch,
+        shuffle=True,
+        drop_last=True,
+        pin_memory=(device == "cuda:0"),
+        collate_fn=collate_fn,
+    )
 
     channels = 3 if experiment == "concept" else 1
     bits = 4 if experiment == "concept" else 8
     if no_hyper_search:
         index = DEFAULT_INDEX
     else:
-        index = hyper_search(experiment, m, data_type, outer_lr, train_loader, val_dataset, test_dataset, device, channels=channels, bits=bits)
+        index = hyper_search(
+            experiment,
+            m,
+            data_type,
+            outer_lr,
+            train_loader,
+            val_dataset,
+            test_dataset,
+            device,
+            channels=channels,
+            bits=bits,
+        )
 
     # init meta-learner, loss, and meta-optimizer
-    model = init_model(m, data_type, index=index, verbose=True, channels=channels, bits=bits)
+    model = init_model(
+        m, data_type, index=index, verbose=True, channels=channels, bits=bits
+    )
     model = model.to(device)
     meta = l2l.algorithms.MetaSGD(model, lr=1e-3, first_order=False).to(device)
     criterion = nn.MSELoss() if experiment == "mod" else nn.BCEWithLogitsLoss()
@@ -68,7 +90,7 @@ def main(
         epochs,
         tasks_per_meta_batch,
         adaptation_steps,
-        verbose=True
+        verbose=True,
     )
     if plot:
         plot_loss(train_losses, test_losses)
@@ -76,9 +98,31 @@ def main(
     # load best model + save
     if save:
         if experiment == "mod":
-            file_prefix = experiment + "_" + m + "_" + str(index) + "_" + data_type + "_" + str(n_samples_per_task) + "_" + str(skip) + "_" + str(seed)
+            file_prefix = (
+                experiment
+                + "_"
+                + m
+                + "_"
+                + str(index)
+                + "_"
+                + data_type
+                + "_"
+                + str(skip)
+                + "_"
+                + str(seed)
+            )
         else:
-            file_prefix = experiment + "_" + m + "_" + str(index) + "_" + data_type + "_" + str(seed)
+            file_prefix = (
+                experiment
+                + "_"
+                + m
+                + "_"
+                + str(index)
+                + "_"
+                + data_type
+                + "_"
+                + str(seed)
+            )
         meta.load_state_dict(state_dict)
         save_model(meta, file_prefix=file_prefix)
 
@@ -102,6 +146,7 @@ def main(
         )
         plot_meta_test_results(results)
         plt.show()
+
 
 if __name__ == "__main__":
     typer.run(main)

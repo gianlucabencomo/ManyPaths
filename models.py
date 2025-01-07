@@ -11,6 +11,7 @@ from typing import List, Optional
 
 from constants import CNN_PARAMS, MLP_PARAMS, LSTM_PARAMS, TRANSFORMER_PARAMS
 
+
 class CNN(nn.Module):
     def __init__(
         self,
@@ -23,7 +24,11 @@ class CNN(nn.Module):
         n_penultimate = int(n_hiddens[-1] * (32 / 2 ** len(n_hiddens)) ** 2)
         layers = []
         for i, n_hidden in enumerate(n_hiddens):
-            layers.append(nn.Conv2d(n_input_channels if i == 0 else n_hiddens[i - 1], n_hidden, 3, 1, 1))
+            layers.append(
+                nn.Conv2d(
+                    n_input_channels if i == 0 else n_hiddens[i - 1], n_hidden, 3, 1, 1
+                )
+            )
             layers.append(nn.BatchNorm2d(n_hidden))
             layers.append(nn.ReLU())
             layers.append(nn.AvgPool2d(2))
@@ -46,40 +51,50 @@ class MLP(nn.Module):
         n_output: int = 1,
         n_hidden: int = 64,
         n_layers: int = 8,
+        n_input_channels: int = 1
     ):
         super().__init__()
         layers = []
         if n_input < 64:
-            layers.extend([
-                nn.Linear(n_input, 32 * 32),
-                nn.BatchNorm1d(32 * 32),
-                nn.ReLU(),
-                nn.Linear(32 * 32, n_hidden),
-                nn.BatchNorm1d(n_hidden),
-            ])
+            layers.extend(
+                [
+                    nn.Linear(n_input, 32 * 32 * n_input_channels),
+                    nn.BatchNorm1d(32 * 32 * n_input_channels),
+                    nn.ReLU(),
+                    nn.Linear(32 * 32 * n_input_channels, n_hidden),
+                    nn.BatchNorm1d(n_hidden),
+                ]
+            )
         else:
-            layers.extend([
-                nn.Linear(n_input, n_hidden),
-                nn.BatchNorm1d(n_hidden),
-                nn.ReLU(),
-                nn.Linear(n_hidden, n_hidden),
-                nn.BatchNorm1d(n_hidden),
-            ])
+            layers.extend(
+                [
+                    nn.Linear(n_input, n_hidden),
+                    nn.BatchNorm1d(n_hidden),
+                    nn.ReLU(),
+                    nn.Linear(n_hidden, n_hidden),
+                    nn.BatchNorm1d(n_hidden),
+                ]
+            )
         layers.append(nn.ReLU())
         for _ in range(n_layers - 2):
-            layers.extend([
-                nn.Linear(n_hidden, n_hidden),
-                nn.BatchNorm1d(n_hidden),
-                nn.ReLU(),
-            ])
+            layers.extend(
+                [
+                    nn.Linear(n_hidden, n_hidden),
+                    nn.BatchNorm1d(n_hidden),
+                    nn.ReLU(),
+                ]
+            )
         layers.append(nn.Linear(n_hidden, n_output))
         self.model = nn.Sequential(*layers)
 
     def forward(self, x):
         return self.model(x)
 
+
 class LSTMCell(nn.Module):
-    def __init__(self, n_input: int = 16, n_hidden: int = 64, use_layer_norm: bool = True):
+    def __init__(
+        self, n_input: int = 16, n_hidden: int = 64, use_layer_norm: bool = True
+    ):
         super().__init__()
         self.n_hidden = n_hidden
         self.gates = nn.Linear(n_hidden + n_input, 4 * n_hidden)
@@ -99,6 +114,7 @@ class LSTMCell(nn.Module):
         h = o * torch.tanh(c)
         return h, c
 
+
 class LSTM(nn.Module):
     def __init__(
         self, n_input: int = 16, n_output: int = 1, n_hidden: int = 64, n_layers=2
@@ -107,21 +123,28 @@ class LSTM(nn.Module):
         self.n_hidden = n_hidden
         self.n_layers = n_layers
         self.input_proj = nn.Linear(n_input, n_hidden)
-        self.lstm = nn.ModuleList([
-            LSTMCell(n_hidden, n_hidden) for i in range(n_layers)
-        ])
+        self.lstm = nn.ModuleList(
+            [LSTMCell(n_hidden, n_hidden) for i in range(n_layers)]
+        )
         self.fc = nn.Linear(n_hidden, n_output)
 
     def forward(self, x):
         batch_size, seq_len, _ = x.size()
-        h = [torch.zeros(batch_size, self.n_hidden, device=x.device) for _ in range(self.n_layers)]
-        c = [torch.zeros(batch_size, self.n_hidden, device=x.device) for _ in range(self.n_layers)]
+        h = [
+            torch.zeros(batch_size, self.n_hidden, device=x.device)
+            for _ in range(self.n_layers)
+        ]
+        c = [
+            torch.zeros(batch_size, self.n_hidden, device=x.device)
+            for _ in range(self.n_layers)
+        ]
         for t in range(seq_len):
             input_t = self.input_proj(x[:, t, :])
             for layer in range(self.n_layers):
                 h[layer], c[layer] = self.lstm[layer](input_t, h[layer], c[layer])
                 input_t = h[layer]
         return self.fc(h[-1])
+
 
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model, max_len=64):
@@ -138,7 +161,8 @@ class PositionalEncoding(nn.Module):
     def forward(self, x):
         seq_len = x.size(1)
         return x + self.pe[:, :seq_len].requires_grad_(False)
-    
+
+
 class TransformerEncoderLayer(nn.Module):
     def __init__(
         self,
@@ -148,10 +172,7 @@ class TransformerEncoderLayer(nn.Module):
     ):
         super().__init__()
         self.self_attn = nn.MultiheadAttention(
-            embed_dim=d_model,
-            num_heads=nhead,
-            dropout=0.0,
-            batch_first=True
+            embed_dim=d_model, num_heads=nhead, dropout=0.0, batch_first=True
         )
         self.linear1 = nn.Linear(d_model, dim_feedforward)
         self.linear2 = nn.Linear(dim_feedforward, d_model)
@@ -166,14 +187,13 @@ class TransformerEncoderLayer(nn.Module):
     ) -> torch.Tensor:
         src2 = self.norm1(src)
         attn_output, _ = self.self_attn(
-                src2, src2, src2,
-                attn_mask=src_mask,
-                key_padding_mask=src_key_padding_mask
-            )
+            src2, src2, src2, attn_mask=src_mask, key_padding_mask=src_key_padding_mask
+        )
         src = src + attn_output
         src2 = self.norm2(src)
         src = src + self.linear2(torch.relu(self.linear1(src2)))
         return src
+
 
 class Transformer(nn.Module):
     def __init__(
@@ -199,7 +219,7 @@ class Transformer(nn.Module):
     def forward(self, x):
         x = self.input_proj(x)
         x = self.pos_encoder(x)
-        for layer in self.encoder: 
+        for layer in self.encoder:
             x = layer(x)
         return self.decoder(x[:, -1, :])
 
@@ -208,9 +228,19 @@ def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
-def plot_parameter_ranges(cnn_range, mlp_range, lstm_range, transformer_range, cnn_values, mlp_values, lstm_values, transformer_values, index=0):
+def plot_parameter_ranges(
+    cnn_range,
+    mlp_range,
+    lstm_range,
+    transformer_range,
+    cnn_values,
+    mlp_values,
+    lstm_values,
+    transformer_values,
+    index=0,
+):
     # Prepare data
-    architectures = ['CNN', 'MLP', 'LSTM', 'Transformer']
+    architectures = ["CNN", "MLP", "LSTM", "Transformer"]
     min_values = [cnn_range[0], mlp_range[0], lstm_range[0], transformer_range[0]]
     max_values = [cnn_range[1], mlp_range[1], lstm_range[1], transformer_range[1]]
     all_values = [cnn_values, mlp_values, lstm_values, transformer_values]
@@ -219,45 +249,64 @@ def plot_parameter_ranges(cnn_range, mlp_range, lstm_range, transformer_range, c
     plt.figure(figsize=(12, 3))
     for i, arch in enumerate(architectures):
         # Plot the range line
-        plt.hlines(y=i, xmin=min_values[i], xmax=max_values[i], color='blue', lw=3)
-        
+        plt.hlines(y=i, xmin=min_values[i], xmax=max_values[i], color="blue", lw=3)
+
         # Plot individual values as black dots
         for value in all_values[i]:
-            plt.scatter(value, i, color='black', zorder=5, linewidths=3)
+            plt.scatter(value, i, color="black", zorder=5, linewidths=3)
 
         # Plot the min and max points
-        plt.scatter(min_values[i], i, color='red', zorder=5, linewidths=3)  # Min point
-        plt.scatter(max_values[i], i, color='green', zorder=5, linewidths=3)  # Max point
+        plt.scatter(min_values[i], i, color="red", zorder=5, linewidths=3)  # Min point
+        plt.scatter(
+            max_values[i], i, color="green", zorder=5, linewidths=3
+        )  # Max point
 
     def format_func(value, tick_number):
         if value == 0:
-            return '0'
+            return "0"
         else:
-            return f'{int(value / 1000)}K'
+            return f"{int(value / 1000)}K"
 
     plt.gca().xaxis.set_major_formatter(FuncFormatter(format_func))
 
     # Add labels and title
     plt.yticks(range(len(architectures)), architectures, fontsize=16)
-    plt.xlabel('Number of Parameters', fontsize=16)
+    plt.xlabel("Number of Parameters", fontsize=16)
     plt.xticks(fontsize=16)
-    plt.grid(axis='x', linestyle='--', alpha=0.6)
+    plt.grid(axis="x", linestyle="--", alpha=0.6)
 
     # Add annotations for min and max values
     for i, arch in enumerate(architectures):
-        plt.text(min_values[i], i + 0.14, f"{min_values[i]:,}", color='red', ha='center', fontsize=12)
-        plt.text(max_values[i], i - 0.32, f"{max_values[i]:,}", color='green', ha='center', fontsize=12)
+        plt.text(
+            min_values[i],
+            i + 0.14,
+            f"{min_values[i]:,}",
+            color="red",
+            ha="center",
+            fontsize=12,
+        )
+        plt.text(
+            max_values[i],
+            i - 0.32,
+            f"{max_values[i]:,}",
+            color="green",
+            ha="center",
+            fontsize=12,
+        )
 
-    y_min = -0.35 # Add buffer below
+    y_min = -0.35  # Add buffer below
     y_max = 3.35  # Add buffer above
     plt.ylim(y_min, y_max)
 
     plt.tight_layout(pad=0)
-    plt.savefig(f"parameter_ranges{index}.pdf", format="pdf", dpi=300, bbox_inches='tight')
+    plt.savefig(
+        f"parameter_ranges{index}.pdf", format="pdf", dpi=300, bbox_inches="tight"
+    )
     plt.show()
 
+
 def main(index: int = 3):
-    C = [1, 1, 1, 1, 3]
+    C = [1, 3, 1, 1, 3]
     counts_mlp = [1, 4, 8, 32 * 32 * 1, 32 * 32 * 3]
     counts_seq = [1, 1, 1, 16, 48]
 
@@ -266,8 +315,17 @@ def main(index: int = 3):
     cnn_values, mlp_values, lstm_values, transformer_values = [], [], [], []
     for i in range(len(CNN_PARAMS)):
         cnn = CNN(C[index], 1, CNN_PARAMS[i][0], CNN_PARAMS[i][1])
-        mlp = MLP(n_input=counts_mlp[index], n_hidden=MLP_PARAMS[i][0], n_layers=MLP_PARAMS[i][1])
-        lstm = LSTM(n_input=counts_seq[index], n_hidden=LSTM_PARAMS[i][0], n_layers=LSTM_PARAMS[i][1])
+        mlp = MLP(
+            n_input=counts_mlp[index],
+            n_hidden=MLP_PARAMS[i][0],
+            n_layers=MLP_PARAMS[i][1],
+            n_input_channels=C[index]
+        )
+        lstm = LSTM(
+            n_input=counts_seq[index],
+            n_hidden=LSTM_PARAMS[i][0],
+            n_layers=LSTM_PARAMS[i][1],
+        )
         transformer = Transformer(
             n_input=counts_seq[index],
             d_model=TRANSFORMER_PARAMS[i][0],
@@ -306,7 +364,9 @@ def main(index: int = 3):
     print(f"Number of parameters in MLP: min = {mlp_min}, max = {mlp_max}")
     print(f"Number of parameters in CNN: min = {cnn_min}, max = {cnn_max}")
     print(f"Number of parameters in LSTM: min = {lstm_min}, max = {lstm_max}")
-    print(f"Number of parameters in Transformer: min = {transformer_min}, max = {transformer_max}")
+    print(
+        f"Number of parameters in Transformer: min = {transformer_min}, max = {transformer_max}"
+    )
 
     # Plot parameter ranges
     plot_parameter_ranges(
@@ -318,8 +378,9 @@ def main(index: int = 3):
         mlp_values=mlp_values,
         lstm_values=lstm_values,
         transformer_values=transformer_values,
-        index=index
+        index=index,
     )
+
 
 if __name__ == "__main__":
     typer.run(main)

@@ -5,6 +5,7 @@ from scipy.stats import t
 
 STEPS = [0, 1]
 
+
 def plot_loss(train_losses, test_losses):
     # Plot meta-training loss
     epochs = np.arange(len(train_losses))
@@ -15,17 +16,21 @@ def plot_loss(train_losses, test_losses):
     plt.legend()
 
 
-def plot_meta_test_results(results):
-    n_tasks = len(results)
+def plot_meta_test_results(results, n_tasks=20):
     cols = 5  # Number of columns in the subplot grid
     rows = (n_tasks + cols - 1) // cols  # Calculate number of rows required
 
     fig, axes = plt.subplots(rows, cols, figsize=(14, 2 * rows))
     axes = axes.flatten()
 
-    for i, result in enumerate(results):
-        ax = axes[i]
+    i, ms = 0, []
+    results = sorted(results, key=lambda x: x["m"])
+    for result in results:
         m = result["m"]
+        if m in ms:
+            continue
+        ms.append(m)
+        ax = axes[i]
         preds = []
         for pred in result["predictions"]:
             preds.append(pred.cpu().squeeze())
@@ -47,9 +52,9 @@ def plot_meta_test_results(results):
             ".",
             label="Support Points",
         )
-        for i, step in enumerate(STEPS):
+        for k, step in enumerate(STEPS):
             ax.plot(
-                X_q[sorted_indices], preds[i][sorted_indices], label=f"Steps {step}"
+                X_q[sorted_indices], preds[k][sorted_indices], label=f"Steps {step}"
             )
         ax.set_title(f"m = {m}")
 
@@ -57,7 +62,7 @@ def plot_meta_test_results(results):
             ax.set_ylabel("y = x mod m")
         if i >= (rows - 1) * cols:
             ax.set_xlabel("x")
-
+        i += 1
     # Remove any unused axes in the grid
     for j in range(n_tasks, len(axes)):
         fig.delaxes(axes[j])

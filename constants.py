@@ -79,7 +79,6 @@ MODELS = ["mlp", "transformer", "lstm", "cnn"]
 DATA_TYPES = ["number", "bits", "image"]
 SKIPS = [1, 2]  # 20-20 and even-odd
 INDICES = np.arange(16)
-N_SUPPORT = [20, 50, 100]
 DEFAULT_INDEX = 7
 FEATURE_VALUES = np.array(
     [

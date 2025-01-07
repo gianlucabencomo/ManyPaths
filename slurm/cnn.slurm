@@ -18,8 +18,6 @@ conda activate paths
 
 SEED=${SEED:-0}                     # Default seed is 0
 DATA_TYPE=${DATA_TYPE:-image}       # Default data type is 'image'
-N_SAMPLES=${N_SAMPLES:-20}
-STEPS=${STEPS:-1}
 SKIP=${SKIP:-1}
 
-python main.py --seed $SEED --epochs 1000 --m cnn --data-type $DATA_TYPE --n-samples-per-task $N_SAMPLES --adaptation-steps $STEPS --skip $SKIP --save
+python main.py --seed $SEED --epochs 1000 --m cnn --data-type $DATA_TYPE --skip $SKIP --save

@@ -331,31 +331,41 @@ def generate_number_grid(number: int, translate_random: bool = False):
 
     if translate_random:
         x, y = np.random.randint(3, size=2)
-        grid_image[(2 - y):(32 - y), (2 - x):(16 - x)] = color[tens][1:31,1:15]
+        grid_image[(2 - y) : (32 - y), (2 - x) : (16 - x)] = color[tens][1:31, 1:15]
         x, y = np.random.randint(2, size=2)
-        grid_image[(2 - y):(32 - y), (18 - x):(32 - x)] = color[units][1:31,1:15]
+        grid_image[(2 - y) : (32 - y), (18 - x) : (32 - x)] = color[units][1:31, 1:15]
     else:
         grid_image[:, :16] = color[tens]
         grid_image[:, 16:] = color[units]
 
     return grid_image
 
+
 def plot():
     fig, axes = plt.subplots(2, 8, figsize=(14, 5))
     for i in range(16):
-        number = (i+1) * 3
+        number = (i + 1) * 3
         bits = [int(x) for x in f"{number:08b}"]
         grid_image = generate_number_grid(number)
         ax = axes[i // 8, i % 8]
         ax.imshow(grid_image, cmap="magma", interpolation="nearest")
         ax.axis("off")
         ax.set_title(f"{number}", fontsize=20)
-        ax.text(0.5, -0.18, f"{bits[7]}{bits[6]}{bits[5]}{bits[4]}{bits[3]}{bits[2]}{bits[1]}{bits[0]}", ha='center', va='center', transform=ax.transAxes, fontsize=20)
+        ax.text(
+            0.5,
+            -0.18,
+            f"{bits[7]}{bits[6]}{bits[5]}{bits[4]}{bits[3]}{bits[2]}{bits[1]}{bits[0]}",
+            ha="center",
+            va="center",
+            transform=ax.transAxes,
+            fontsize=20,
+        )
 
     plt.tight_layout(pad=0)
     output_path = "number_grid.pdf"
-    plt.savefig(output_path, format="pdf", dpi=300, bbox_inches='tight')
+    plt.savefig(output_path, format="pdf", dpi=300, bbox_inches="tight")
     plt.close(fig)
+
 
 if __name__ == "__main__":
     plot()

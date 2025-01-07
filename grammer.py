@@ -42,7 +42,6 @@ class Grammar:
         return iter(self.rules.items())
 
     def sample(self, nonterminal):
-
         if nonterminal in self.rules:
             choices = self.rules[nonterminal]
             weights = self.weights[nonterminal]
@@ -63,7 +62,9 @@ class Grammar:
                 arg_functions.append(arg_function)
                 arg_names.append(arg_name)
 
-            new_function = lambda x: choice.function(*[arg_function(x) for arg_function in arg_functions])
+            new_function = lambda x: choice.function(
+                *[arg_function(x) for arg_function in arg_functions]
+            )
             new_name = choice.name % tuple(arg_names)
 
             return new_function, new_name
@@ -77,7 +78,6 @@ class Grammar:
 
 class DNFHypothesis:
     def __init__(self, n_features=4, no_true_false_top=True, b=1):
-
         # Used for determining probability of outlier
         self.b = b
         self.p_outlier = math.exp(-1 * self.b) / (1 + math.exp(-1 * self.b))
@@ -86,13 +86,21 @@ class DNFHypothesis:
 
         if no_true_false_top:
             s1 = Primitive("S", ["D_top"], lambda x: x, "∀x l(x) <=> %s")
-            self.grammar.add(s1, 1.0)  # Don't have to worry about probability - only one option
+            self.grammar.add(
+                s1, 1.0
+            )  # Don't have to worry about probability - only one option
 
-            d_top = Primitive("D_top", ["C_top", "D"], lambda x, y: x or y, "(%s or %s)")
-            self.grammar.add(d_top, 1.0)  # Don't have to worry about probability - only one option
+            d_top = Primitive(
+                "D_top", ["C_top", "D"], lambda x, y: x or y, "(%s or %s)"
+            )
+            self.grammar.add(
+                d_top, 1.0
+            )  # Don't have to worry about probability - only one option
 
             c_top = Primitive("C_top", ["P", "C"], lambda x, y: x and y, "(%s and %s)")
-            self.grammar.add(c_top, 1.0)  # Don't have to worry about probability - only one option
+            self.grammar.add(
+                c_top, 1.0
+            )  # Don't have to worry about probability - only one option
 
             d1 = Primitive("D", ["C_top", "D"], lambda x, y: x or y, "(%s or %s)")
             d2 = Primitive("D", [], lambda f: False, "False")
@@ -106,7 +114,9 @@ class DNFHypothesis:
 
         else:
             s1 = Primitive("S", ["D"], lambda x: x, "∀x l(x) <=> %s")
-            self.grammar.add(s1, 1.0)  # Don't have to worry about probability - only one option
+            self.grammar.add(
+                s1, 1.0
+            )  # Don't have to worry about probability - only one option
 
             d1 = Primitive("D", ["C", "D"], lambda x, y: x or y, "(%s or %s)")
             d2 = Primitive("D", [], lambda f: False, "False")
@@ -134,10 +144,20 @@ class DNFHypothesis:
             self.grammar.add(p_primitive, p_probs[i])
 
             f_probs = np.random.dirichlet((1, 1))
-            f1_primitive = Primitive("F" + str(i + 1), [], lambda f, i=i: f[i] == 1, "f_" + str(i + 1) + "(x) = 1")
+            f1_primitive = Primitive(
+                "F" + str(i + 1),
+                [],
+                lambda f, i=i: f[i] == 1,
+                "f_" + str(i + 1) + "(x) = 1",
+            )
             self.grammar.add(f1_primitive, f_probs[0])
 
-            f2_primitive = Primitive("F" + str(i + 1), [], lambda f, i=i: f[i] == 0, "f_" + str(i + 1) + "(x) = 0")
+            f2_primitive = Primitive(
+                "F" + str(i + 1),
+                [],
+                lambda f, i=i: f[i] == 0,
+                "f_" + str(i + 1) + "(x) = 0",
+            )
             self.grammar.add(f2_primitive, f_probs[1])
 
         dataset_created = False
@@ -153,7 +173,6 @@ class DNFHypothesis:
                 pass
 
     def function_with_outliers(self, inp):
-
         correct_output = self.function(inp)
         if random.random() < self.p_outlier:
             return not correct_output
@@ -165,25 +184,29 @@ if __name__ == "__main__":
     my_hyp = DNFHypothesis(n_features=4, no_true_false_top=True, b=1)
     print(my_hyp.name)
 
-    feature_values = [[0, 0, 0, 0],
-                      [0, 0, 0, 1],
-                      [0, 0, 1, 0],
-                      [0, 0, 1, 1],
-                      [0, 1, 0, 0],
-                      [0, 1, 0, 1],
-                      [0, 1, 1, 0],
-                      [0, 1, 1, 1],
-                      [1, 0, 0, 0],
-                      [1, 0, 0, 1],
-                      [1, 0, 1, 0],
-                      [1, 0, 1, 1],
-                      [1, 1, 0, 0],
-                      [1, 1, 0, 1],
-                      [1, 1, 1, 0],
-                      [1, 1, 1, 1]]
+    feature_values = [
+        [0, 0, 0, 0],
+        [0, 0, 0, 1],
+        [0, 0, 1, 0],
+        [0, 0, 1, 1],
+        [0, 1, 0, 0],
+        [0, 1, 0, 1],
+        [0, 1, 1, 0],
+        [0, 1, 1, 1],
+        [1, 0, 0, 0],
+        [1, 0, 0, 1],
+        [1, 0, 1, 0],
+        [1, 0, 1, 1],
+        [1, 1, 0, 0],
+        [1, 1, 0, 1],
+        [1, 1, 1, 0],
+        [1, 1, 1, 1],
+    ]
 
     for features in feature_values:
-        print(features, my_hyp.function(features), my_hyp.function_with_outliers(features))
+        print(
+            features, my_hyp.function(features), my_hyp.function_with_outliers(features)
+        )
 
     print("")
     print("Grammar:")
