@@ -1,5 +1,10 @@
+import os
 import torch
+from PIL import Image
 import numpy as np
+from torchvision import transforms, datasets
+from torchvision.datasets.utils import list_files
+from collections import defaultdict
 from torch.utils.data import Dataset
 from generate_numbers import generate_number_grid
 from generate_concepts import generate_concept
@@ -215,3 +220,85 @@ class MetaModuloDataset(BaseMetaDataset):
         b = torch.arange(self.bit_width - 1, -1, -1, dtype=torch.int32)
         bitstrings = (numbers >> b) & 1
         return (bitstrings * 2 - 1).unsqueeze(-1).float()
+
+
+class Omniglot(BaseMetaDataset):
+
+    TRANSFORM = transforms.Compose([
+        transforms.Grayscale(num_output_channels=1),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.922059], std=[0.268076])
+    ])
+    DATA_PATH = "./omniglot"
+
+    def __init__(
+        self,
+        n_tasks: int = 10000,
+        alphabet: list = None,
+        model: str = "cnn",
+        N: int = 20,
+        K: int = 5,
+        train = True,
+    ):
+        super().__init__()
+        self.n_tasks = n_tasks
+        self.model = model
+        self.N = N
+        self.K = K
+        self.train = train
+        self.dataset, self.characters = self._init_dataset()
+        self._generate_tasks()
+
+    def _init_dataset(self):
+        dataset = datasets.Omniglot(root=self.DATA_PATH, background=self.train, transform=self.TRANSFORM, download=True)
+        images = [
+            [(image,) + os.path.split(character) for image in list_files(os.path.join(dataset.target_folder, character), ".png")]
+            for character in dataset._characters
+        ]
+        dataset = defaultdict(lambda: defaultdict(list))
+        for group in images:
+            for file_name, alpha, character in group:
+                dataset[alpha][character].append(file_name)
+        # Filter by specified alphabets
+        if self.alphabet is not None and self.train:
+            dataset = {a: dataset[a] for a in self.alphabet if a in dataset}
+        characters = [(a, char) for a in dataset for char in dataset[a]]
+        return dataset, characters
+
+    def _generate_tasks(self):
+        for _ in range(self.n_tasks):
+            characters = np.random.choice(self.characters, size=self.N)
+            X_s, X_q, y_s, y_q = [], [], [], []
+            for i, (alphabet, character) in enumerate(characters):
+                images = self.dataset[alphabet][character]
+                np.random.shuffle(images)
+                support = images[:self.K]
+                query = images[self.K:]
+                X_s.extend(support)
+                y_s.extend([i] * self.K)  # Class label `i` for support set
+                X_q.extend(query)
+                y_q.extend([i] * len(query))  # Class label `i` for query set
+            self.tasks.append((X_s, y_s, X_q, y_q))
+
+    def __getitem__(self, idx):
+        X_s, y_s, X_q, y_q = self.tasks[idx]
+        X_image_s = []
+        for img_path in X_s:
+            img_full_path = os.path.join(self.dataset.target_folder, img_path)
+            img = Image.open(img_full_path).convert("L")  # grayscale
+            if self.transform:
+                img = self.transform(img)
+            X_image_s.append(img)
+        X_s = torch.stack(X_image_s) 
+
+        # query set
+        X_image_q = []
+        for img_path in X_q:
+            img_full_path = os.path.join(self.dataset.target_folder, img_path)
+            img = Image.open(img_full_path).convert("L")
+            if self.transform:
+                img = self.transform(img)
+            X_image_q.append(img)
+        X_q = torch.stack(X_image_q)
+
+        return X_s, y_s, X_q, y_q
