@@ -21,14 +21,23 @@ import pandas as pd
 
 def get_filenames_seeds_indices(directory, experiment, model, data_type, skip):
     # Construct the regex pattern
-    pattern = (
-        rf"{experiment}_"      # Experiment name
-        rf"{model}_"           # Model name
-        r"(\d+)_"              # Capturing group for index
-        rf"{data_type}_"       # Data type
-        rf"{skip}_"            # Skip value
-        r"(\d+)\.pth"          # Capturing group for seed
-    )
+    if experiment == "mod":
+        pattern = (
+            rf"{experiment}_"      # Experiment name
+            rf"{model}_"           # Model name
+            r"(\d+)_"              # Capturing group for index
+            rf"{data_type}_"       # Data type
+            rf"{skip}_"            # Skip value
+            r"(\d+)\.pth"          # Capturing group for seed
+        )
+    else:
+        pattern = (
+            rf"{experiment}_"      # Experiment name
+            rf"{model}_"           # Model name
+            r"(\d+)_"              # Capturing group for index
+            rf"{data_type}_"       # Data type
+            r"(\d+)\.pth"          # Capturing group for seed
+        )
 
     results = []
     try:
@@ -46,9 +55,13 @@ def get_filenames_seeds_indices(directory, experiment, model, data_type, skip):
 
     return results
 
-def compute_mean_and_ci(results, confidence=0.95):
-    pre_adapt = np.array([[task["losses"][0] for task in res] for res in results])
-    post_adapt = np.array([[task["losses"][1] for task in res] for res in results])
+def compute_mean_and_ci(results, confidence=0.95, experiment='mod'):
+    if experiment == 'concept':
+        pre_adapt = np.array([[task["losses"][0] for task in res] for res in results])
+        post_adapt = np.array([[task["losses"][1] for task in res] for res in results])
+    else:
+        pre_adapt = np.array([[task["accuracies"][0] for task in res] for res in results])
+        post_adapt = np.array([[task["accuracies"][1] for task in res] for res in results])
     m = np.array([task["m"] for task in results[0]])
 
     mean_pre = np.mean(pre_adapt, axis=0)  # Mean across seeds
@@ -76,9 +89,11 @@ def main(
     plot: bool = False,
     save: bool = False,
 ):
-    architectures = ["mlp", "cnn", "transformer"]
+    architectures = ["mlp"]
     n_supports = [20, 40, 100] if experiment == "mod" else [5, 10, 15]
     data_types = ['image', 'bits', 'number']
+    if experiment == "concept":
+        data_types.remove('number')
     skips = [1, 2] if experiment == "mod" else [None]
     channels = 3 if experiment == "concept" else 1
     bits = 4 if experiment == "concept" else 8
@@ -98,12 +113,7 @@ def main(
             if (data_type in ["number", "bits"] and m == "cnn"):
                 continue
             for skip in skips:
-                if experiment == "mod":
-                    models = get_filenames_seeds_indices(directory, experiment, m, data_type, skip)
-                else:
-                    raise ValueError
-
-  
+                models = get_filenames_seeds_indices(directory, experiment, m, data_type, skip)
                 for (filepath, index, seed) in models:
                     base_model = init_model(
                         m, data_type, index=index, verbose=True, channels=channels, bits=bits
@@ -194,7 +204,7 @@ def main(
                                 "index": index,
                             })
     df_master = pd.DataFrame(results_master)
-    print(df_master.head())
+    print(df_master)
 
     if save:
         os.makedirs(output_folder, exist_ok=True)

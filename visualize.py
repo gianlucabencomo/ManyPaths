@@ -1,3 +1,5 @@
+import typer
+
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
@@ -17,6 +19,9 @@ support_color = {
     20: (0.1, 0.1, 0.8),  # Blue
     40: (0.8, 0.1, 0.1),  # Red
     100: (0.1, 0.8, 0.1), # Green
+    5: (0.1, 0.1, 0.8),  # Blue
+    10: (0.8, 0.1, 0.1),  # Red
+    15: (0.1, 0.8, 0.1), # Green
 }
 data_color = {
     "image":  (0.1, 0.1, 0.8), # Blue
@@ -204,6 +209,7 @@ def plot_by_data_type_and_stage(
                         f"figures/data_comp_{skip}_{model}_{n_support}_w_lims.pdf", format="pdf", dpi=300, bbox_inches="tight"
                     )
 
+
 # ===============================
 # 2) Plot by support size & stage
 # ===============================
@@ -241,7 +247,7 @@ def plot_by_support_and_stage(
                             (df["model"] == model) &
                             (df["n_support"] == n_support) &
                             (df["data_type"] == data_type) &
-                            (df["skip"] == skip) & 
+                            (df["skip"] == skip) &
                             (df["Stage"] == stage)
                         ]
                         if not subset.empty:
@@ -340,11 +346,13 @@ def plot_by_model_and_stage(
                         f"figures/model_comp_{skip}_{n_support}_{data_type}_w_lims.pdf", format="pdf", dpi=300, bbox_inches="tight"
                     )
 
-
-if __name__ == '__main__':
+def main(directory: str = "results/", experiment: str = "mod"):
+    csv_path = directory + experiment + ".csv"
     # Load DataFrame
-    csv_path = "results/mod.csv"
     df = pd.read_csv(csv_path)
+    if experiment == "concept":
+        print(df)
+        exit()
 
     # Quick check if the DataFrame is empty
     if df.empty:
@@ -353,6 +361,10 @@ if __name__ == '__main__':
         plot_by_data_type_and_stage(df)
         plot_by_support_and_stage(df)
         plot_by_model_and_stage(df)
-        plot_by_data_type_and_stage(df, wlims=True)
-        plot_by_support_and_stage(df, wlims=True)
-        plot_by_model_and_stage(df, wlims=True)
+        if experiment == "mod":
+            plot_by_data_type_and_stage(df, wlims=True)
+            plot_by_support_and_stage(df, wlims=True)
+            plot_by_model_and_stage(df, wlims=True)
+
+if __name__ == '__main__':
+    typer.run(main)

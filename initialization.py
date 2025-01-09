@@ -37,14 +37,16 @@ def init_dataset(experiment, model, data_type, skip, n_support=None):
                 model=model,
             )
         test_dataset = MetaBitConceptsDataset(
-            n_tasks=100,
+            n_tasks=10 if n_support is not None else 100,
             data=data_type,
             model=model,
+            n_support=n_support
         )
         val_dataset = MetaBitConceptsDataset(
-            n_tasks=100,
+            n_tasks=10 if n_support is not None else 100,
             data=data_type,
             model=model,
+            n_support=n_support
         )
     else:
         raise ValueError
