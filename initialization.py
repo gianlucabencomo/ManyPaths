@@ -3,35 +3,39 @@ from models import MLP, CNN, LSTM, Transformer
 from constants import *
 
 
-def init_dataset(experiment, model, data_type, skip):
+def init_dataset(experiment, model, data_type, skip, n_support=None):
     if experiment == "mod":
-        train_dataset = MetaModuloDataset(
-            n_tasks=10000,
-            skip=skip,
-            train=True,
-            data=data_type,
-            model=model,
-        )
+        if n_support is None:
+            train_dataset = MetaModuloDataset(
+                n_tasks=10000,
+                skip=skip,
+                train=True,
+                data=data_type,
+                model=model,
+            )
         test_dataset = MetaModuloDataset(
-            n_tasks=100,
+            n_tasks=20 if n_support is not None else 100,
             skip=skip,
             train=False,
             data=data_type,
             model=model,
+            n_support=n_support
         )
         val_dataset = MetaModuloDataset(
-            n_tasks=100,
+            n_tasks=20 if n_support is not None else 100,
             skip=skip,
             train=True,
             data=data_type,
             model=model,
+            n_support=n_support
         )
     elif experiment == "concept":
-        train_dataset = MetaBitConceptsDataset(
-            n_tasks=10000,
-            data=data_type,
-            model=model,
-        )
+        if n_support is None:
+            train_dataset = MetaBitConceptsDataset(
+                n_tasks=10000,
+                data=data_type,
+                model=model,
+            )
         test_dataset = MetaBitConceptsDataset(
             n_tasks=100,
             data=data_type,
@@ -45,7 +49,10 @@ def init_dataset(experiment, model, data_type, skip):
     else:
         raise ValueError
 
-    return train_dataset, test_dataset, val_dataset
+    if n_support is not None:
+        return test_dataset, val_dataset
+    else:
+        return train_dataset, test_dataset, val_dataset
 
 
 def init_model(

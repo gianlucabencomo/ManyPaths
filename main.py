@@ -72,8 +72,7 @@ def main(
     # init meta-learner, loss, and meta-optimizer
     model = init_model(
         m, data_type, index=index, verbose=True, channels=channels, bits=bits
-    )
-    model = model.to(device)
+    ).to(device)
     meta = l2l.algorithms.MetaSGD(model, lr=1e-3, first_order=False).to(device)
     criterion = nn.MSELoss() if experiment == "mod" else nn.BCEWithLogitsLoss()
     optimizer = torch.optim.AdamW(meta.parameters(), lr=outer_lr)

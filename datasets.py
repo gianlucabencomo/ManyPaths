@@ -85,7 +85,7 @@ class MetaBitConceptsDataset(BaseMetaDataset):
                     X_image_s = X_image_q[inds]
                     y_s = torch.tensor(labels, dtype=torch.float).unsqueeze(1)[inds]
                     y_q = torch.tensor(labels, dtype=torch.float).unsqueeze(1)
-                    self.tasks.append((X_image_s, X_s, y_s, X_image_q, X_q, y_q, m))
+                    self.tasks.append((X_image_s, X_s, y_s, X_image_q, X_q, y_q, n_support))
                     break
 
     def _generate_bit_tasks(self):
@@ -110,7 +110,7 @@ class MetaBitConceptsDataset(BaseMetaDataset):
                         X_s = X_s.unsqueeze(2)
                     X_bits_s = X_s * 2 - 1
                     X_bits_q = X_q * 2 - 1
-                    self.tasks.append((X_bits_s, X_s, y_s, X_bits_q, X_q, y_q, m))
+                    self.tasks.append((X_bits_s, X_s, y_s, X_bits_q, X_q, y_q, n_support))
                     break
 
 
@@ -246,6 +246,7 @@ class Omniglot(BaseMetaDataset):
         self.N = N
         self.K = K
         self.train = train
+        self.alphabet = alphabet
         self.dataset, self.characters = self._init_dataset()
         self._generate_tasks()
 
