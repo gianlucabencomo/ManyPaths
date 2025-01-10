@@ -224,11 +224,6 @@ class MetaModuloDataset(BaseMetaDataset):
 
 class Omniglot(BaseMetaDataset):
 
-    TRANSFORM = transforms.Compose([
-        transforms.Grayscale(num_output_channels=1),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.922059], std=[0.268076])
-    ])
     DATA_PATH = "./omniglot"
 
     def __init__(
@@ -247,23 +242,45 @@ class Omniglot(BaseMetaDataset):
         self.K = K
         self.train = train
         self.alphabet = alphabet
+        self.transform_train = transforms.Compose([
+            transforms.Grayscale(num_output_channels=1),
+            transforms.Resize((32, 32)),
+            transforms.RandomRotation(15),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.922059], std=[0.268076])
+        ])
+        self.transform_test = transforms.Compose([
+            transforms.Grayscale(num_output_channels=1),
+            transforms.Resize((32, 32)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.922059], std=[0.268076])
+        ])
+        self.transform = self.transform_train if self.train else self.transform_test
         self.dataset, self.characters = self._init_dataset()
         self._generate_tasks()
 
     def _init_dataset(self):
-        dataset = datasets.Omniglot(root=self.DATA_PATH, background=self.train, transform=self.TRANSFORM, download=True)
-        images = [
-            [(image,) + os.path.split(character) for image in list_files(os.path.join(dataset.target_folder, character), ".png")]
-            for character in dataset._characters
-        ]
+        raw_dataset = datasets.Omniglot(
+            root=self.DATA_PATH,
+            background=self.train,
+            download=True
+        )
+        images_per_char = []
+        for character in raw_dataset._characters:
+            char_path = os.path.join(raw_dataset.target_folder, character)
+            # list_files returns all *.png in that character directory
+            images_per_char.append([
+                (file_name,) + os.path.split(character)  
+                for file_name in list_files(char_path, ".png")
+            ])
         dataset = defaultdict(lambda: defaultdict(list))
-        for group in images:
+        for group in images_per_char:
             for file_name, alpha, character in group:
                 dataset[alpha][character].append(file_name)
-        # Filter by specified alphabets
+        # Filter by specified alphabets (if provided and if training)
         if self.alphabet is not None and self.train:
             dataset = {a: dataset[a] for a in self.alphabet if a in dataset}
-        characters = [(a, char) for a in dataset for char in dataset[a]]
+        characters = [(a, c) for a in dataset for c in dataset[a]]
         return dataset, characters
 
     def _generate_tasks(self):
@@ -287,8 +304,7 @@ class Omniglot(BaseMetaDataset):
         for img_path in X_s:
             img_full_path = os.path.join(self.dataset.target_folder, img_path)
             img = Image.open(img_full_path).convert("L")  # grayscale
-            if self.transform:
-                img = self.transform(img)
+            img = self.transform(img)
             X_image_s.append(img)
         X_s = torch.stack(X_image_s) 
 
@@ -297,8 +313,7 @@ class Omniglot(BaseMetaDataset):
         for img_path in X_q:
             img_full_path = os.path.join(self.dataset.target_folder, img_path)
             img = Image.open(img_full_path).convert("L")
-            if self.transform:
-                img = self.transform(img)
+            img = self.transform(img)
             X_image_q.append(img)
         X_q = torch.stack(X_image_q)
 

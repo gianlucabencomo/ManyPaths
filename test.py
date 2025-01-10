@@ -55,7 +55,7 @@ def get_filenames_seeds_indices(directory, experiment, model, data_type, skip):
 
     return results
 
-def compute_mean_and_ci(results, confidence=0.95, experiment='mod'):
+def compute_mean_and_variance(results, experiment='mod'):
     if experiment == 'concept':
         pre_adapt = np.array([[task["losses"][0] for task in res] for res in results])
         post_adapt = np.array([[task["losses"][1] for task in res] for res in results])
@@ -66,30 +66,25 @@ def compute_mean_and_ci(results, confidence=0.95, experiment='mod'):
 
     mean_pre = np.mean(pre_adapt, axis=0)  # Mean across seeds
     stderr_pre = sem(pre_adapt, axis=0)  # Standard error of the mean
-    h_pre = stderr_pre * t.ppf(
-        (1 + confidence) / 2, pre_adapt.shape[0] - 1
-    )  # CI margin
+    var_pre = stderr_pre**2  # Variance
 
-    # Compute mean and 95% CI for post-adaptation losses
     mean_post = np.mean(post_adapt, axis=0)  # Mean across seeds
     stderr_post = sem(post_adapt, axis=0)  # Standard error of the mean
-    h_post = stderr_post * t.ppf(
-        (1 + confidence) / 2, post_adapt.shape[0] - 1
-    )  # CI margin
+    var_post = stderr_post**2  # Variance
 
-    return mean_pre, h_pre, mean_post, h_post, m
+    return mean_pre, var_pre, mean_post, var_post, m
 
 
 def main(
     directory: str = "./state_dicts/",
     output_folder: str = "results",
     experiment: str = "mod",  # ["mod", "concept"]
-    test_seeds: int = 100,
+    test_seeds: int = 10,
     adaptation_steps: int = 1,
     plot: bool = False,
     save: bool = False,
 ):
-    architectures = ["mlp"]
+    architectures = ["mlp", "cnn", "transformer"]
     n_supports = [20, 40, 100] if experiment == "mod" else [5, 10, 15]
     data_types = ['image', 'bits', 'number']
     if experiment == "concept":
@@ -168,9 +163,8 @@ def main(
                                 plt.show()
 
                     for n_support in n_supports:
-                        # Compute mean and 95% CI for validation and test losses
-                        _, _, val_mean_post, val_h_post, val_m = compute_mean_and_ci(vals[n_support])
-                        _, _, test_mean_post, test_h_post, test_m = compute_mean_and_ci(tests[n_support])
+                        _, _, val_mean_post, val_var_post, val_m = compute_mean_and_variance(vals[n_support])
+                        _, _, test_mean_post, test_var_post, test_m = compute_mean_and_variance(tests[n_support])
 
                         # For each task (m) in validation
                         for i, m_val in enumerate(val_m):
@@ -185,7 +179,7 @@ def main(
                                 "m": m_val,
                                 # post-adaptation
                                 "mean_post": float(val_mean_post[i]),
-                                "ci_post": float(val_h_post[i]),
+                                "var_post": float(val_var_post[i]),
                                 "index": index,
                             })
 
@@ -200,7 +194,7 @@ def main(
                                 "Stage": "Test",
                                 "m": m_test,
                                 "mean_post": float(test_mean_post[i]),
-                                "ci_post": float(test_h_post[i]),
+                                "var_post": float(test_var_post[i]),
                                 "index": index,
                             })
     df_master = pd.DataFrame(results_master)

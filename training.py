@@ -1,5 +1,6 @@
 import time
 import torch
+from  torch.nn.utils import clip_grad_norm_ as clip
 import torch.nn as nn
 import numpy as np
 import learn2learn as l2l
@@ -52,6 +53,7 @@ def meta_train(
 
             meta_loss /= tasks_per_meta_batch
             meta_loss.backward()
+            clip(meta.parameters(), 1.0)
             optimizer.step()
             episodes_seen += len(X_s)
             if episodes_seen % 1000 == 0:
