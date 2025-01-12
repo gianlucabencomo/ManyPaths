@@ -19,4 +19,4 @@ conda activate paths
 SEED=${SEED:-0}                     # Default seed is 0
 ALPHABET=${ALPHABET:-all}
 
-python main.py --seed $SEED --experiment omniglot --epochs 1000 --m transformer --alphabet $ALPHABET --save
+python main.py --seed $SEED --experiment omniglot --epochs 1000 --m transformer --a $ALPHABET --save

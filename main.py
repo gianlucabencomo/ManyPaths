@@ -19,7 +19,7 @@ def main(
     experiment: str = "mod",  # ["mod", "concept", "omniglot"]
     m: str = "mlp",  # ['mlp', 'cnn', 'lstm', 'transformer']
     data_type: str = "image",  # ['image', 'bits', 'number']
-    alphabet: str = "asian", # ['ancient', 'asian', 'all'] ... only for omniglot
+    a: str = "asian", # ['ancient', 'asian', 'all'] ... only for omniglot
     epochs: int = 1000,  # until convergence
     tasks_per_meta_batch: int = 4,
     adaptation_steps: int = 1,
@@ -38,7 +38,7 @@ def main(
 
     set_random_seeds(seed)
     # init dataset
-    alphabet, bits, channels, n_output = init_misc(experiment, alphabet)
+    alphabet, bits, channels, n_output = init_misc(experiment, a)
     collate_fn = get_collate(experiment, device)
     train_dataset, test_dataset, val_dataset = init_dataset(
         experiment, m, data_type, skip, alphabet=alphabet
@@ -130,7 +130,7 @@ def main(
                 + "_"
                 + str(index)
                 + "_"
-                + alphabet
+                + a
                 + "_"
                 + str(seed)
             )
