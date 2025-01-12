@@ -10,27 +10,27 @@ import pandas as pd
 STEPS = [0, 1]
 
 model_color = {
-    "mlp": (0.1, 0.1, 0.8),        # Blue
-    "cnn": (0.8, 0.1, 0.1),        # Red
-    "lstm": (0.1, 0.8, 0.1),       # Green
-    "transformer": (1.0, 0.5, 0.0) # Orange
+    "mlp": (0.1, 0.1, 0.8),  # Blue
+    "cnn": (0.8, 0.1, 0.1),  # Red
+    "lstm": (0.1, 0.8, 0.1),  # Green
+    "transformer": (1.0, 0.5, 0.0),  # Orange
 }
 support_color = {
     20: (0.1, 0.1, 0.8),  # Blue
     40: (0.8, 0.1, 0.1),  # Red
-    100: (0.1, 0.8, 0.1), # Green
+    100: (0.1, 0.8, 0.1),  # Green
     5: (0.1, 0.1, 0.8),  # Blue
     10: (0.8, 0.1, 0.1),  # Red
-    15: (0.1, 0.8, 0.1), # Green
+    15: (0.1, 0.8, 0.1),  # Green
 }
 data_color = {
-    "image":  (0.1, 0.1, 0.8), # Blue
-    "bits":   (0.8, 0.1, 0.1), # Red
-    "number": (0.1, 0.8, 0.1)  # Green
+    "image": (0.1, 0.1, 0.8),  # Blue
+    "bits": (0.8, 0.1, 0.1),  # Red
+    "number": (0.1, 0.8, 0.1),  # Green
 }
 stage_marker = {
     "Val": "o",  # Circle for validation
-    "Test": "*", # Star for test
+    "Test": "*",  # Star for test
 }
 
 
@@ -40,7 +40,7 @@ def plot_loss(train_losses, test_losses):
     """
     epochs = np.arange(len(train_losses))
     plt.plot(epochs, train_losses, label="Meta-Train Loss")
-    plt.plot(epochs, test_losses,  label="Meta-Test Loss")
+    plt.plot(epochs, test_losses, label="Meta-Test Loss")
     plt.xlabel("Epoch")
     plt.ylabel("Meta Loss")
     plt.legend()
@@ -73,12 +73,19 @@ def plot_meta_test_results(results, n_tasks=20):
 
         sorted_indices = torch.argsort(X_q)
         # True function
-        ax.plot(X_q[sorted_indices], y_q[sorted_indices], label="True Function", linestyle="--")
+        ax.plot(
+            X_q[sorted_indices],
+            y_q[sorted_indices],
+            label="True Function",
+            linestyle="--",
+        )
         # Support points
         ax.plot(X_s, y_s, ".", label="Support Points")
         # Post-adaptation steps
         for k, step in enumerate(STEPS):
-            ax.plot(X_q[sorted_indices], preds[k][sorted_indices], label=f"Steps {step}")
+            ax.plot(
+                X_q[sorted_indices], preds[k][sorted_indices], label=f"Steps {step}"
+            )
 
         ax.set_title(f"m = {m}")
         if i % cols == 0:
@@ -93,8 +100,11 @@ def plot_meta_test_results(results, n_tasks=20):
 
     # Single legend overhead
     handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="upper center", ncol=cols, fontsize="large", frameon=False)
+    fig.legend(
+        handles, labels, loc="upper center", ncol=cols, fontsize="large", frameon=False
+    )
     plt.tight_layout(rect=[0, 0, 1, 0.95])
+
 
 def plot_meta_test_losses(results):
     """
@@ -109,17 +119,14 @@ def plot_meta_test_losses(results):
         pre_loss.append(result["pre_adaptation_loss"])
         post_loss.append(result["post_adaptation_loss"])
 
-    plt.plot(ms, pre_loss, "o-",  label="Pre-Adaptation")
+    plt.plot(ms, pre_loss, "o-", label="Pre-Adaptation")
     plt.plot(ms, post_loss, "o-", label="Post-Adaptation")
     plt.legend()
     plt.tight_layout()
 
+
 def plot_subset(
-    subset: pd.DataFrame,
-    group_label: str,
-    color: tuple,
-    marker: str,
-    stage: str
+    subset: pd.DataFrame, group_label: str, color: tuple, marker: str, stage: str
 ):
     """
     A small helper function to scatter-plot subset data and then plot
@@ -128,7 +135,8 @@ def plot_subset(
     mean_over_means = subset.groupby("m")["mean_post"].mean()
     # Scatter
     plt.scatter(
-        subset["m"], subset["mean_post"],
+        subset["m"],
+        subset["mean_post"],
         label=group_label,
         color=color,
         marker=marker,
@@ -143,6 +151,7 @@ def plot_subset(
         linestyle="--" if stage == "Val" else "-",
         alpha=0.8,
     )
+
 
 # ===============================
 # 1) Plot by data type and stage
@@ -174,11 +183,11 @@ def plot_by_data_type_and_stage(
                 for data_type in data_types:
                     for stage in stages:
                         subset = df[
-                            (df["model"] == model) &
-                            (df["n_support"] == n_support) &
-                            (df["data_type"] == data_type) &
-                            (df["skip"] == skip) & 
-                            (df["Stage"] == stage)
+                            (df["model"] == model)
+                            & (df["n_support"] == n_support)
+                            & (df["data_type"] == data_type)
+                            & (df["skip"] == skip)
+                            & (df["Stage"] == stage)
                         ]
                         if not subset.empty:
                             group_label = f"Meta-{stage}, {data_type.capitalize()}"
@@ -187,7 +196,7 @@ def plot_by_data_type_and_stage(
                                 group_label=group_label,
                                 color=data_color[data_type],
                                 marker=stage_marker[stage],
-                                stage=stage
+                                stage=stage,
                             )
                 if xlims is not None:
                     plt.xlim(xlims)
@@ -196,17 +205,25 @@ def plot_by_data_type_and_stage(
 
                 plt.xlabel("Moduli (m)")
                 plt.ylabel("Mean Squared Error (MSE)")
-                plt.title(f"{'Odd/Even' if skip == 2 else '20/20'}, {model.capitalize()}, Num. Support = {n_support}")
+                plt.title(
+                    f"{'Odd/Even' if skip == 2 else '20/20'}, {model.capitalize()}, Num. Support = {n_support}"
+                )
                 plt.legend(title="Data Split, Data Representation")
                 plt.grid(alpha=0.2)
                 plt.tight_layout()
                 if xlims == None and ylims == None:
                     plt.savefig(
-                        f"figures/data_comp_{skip}_{model}_{n_support}.pdf", format="pdf", dpi=300, bbox_inches="tight"
+                        f"figures/data_comp_{skip}_{model}_{n_support}.pdf",
+                        format="pdf",
+                        dpi=300,
+                        bbox_inches="tight",
                     )
                 else:
                     plt.savefig(
-                        f"figures/data_comp_{skip}_{model}_{n_support}_w_lims.pdf", format="pdf", dpi=300, bbox_inches="tight"
+                        f"figures/data_comp_{skip}_{model}_{n_support}_w_lims.pdf",
+                        format="pdf",
+                        dpi=300,
+                        bbox_inches="tight",
                     )
 
 
@@ -244,11 +261,11 @@ def plot_by_support_and_stage(
                 for n_support in n_supports:
                     for stage in stages:
                         subset = df[
-                            (df["model"] == model) &
-                            (df["n_support"] == n_support) &
-                            (df["data_type"] == data_type) &
-                            (df["skip"] == skip) &
-                            (df["Stage"] == stage)
+                            (df["model"] == model)
+                            & (df["n_support"] == n_support)
+                            & (df["data_type"] == data_type)
+                            & (df["skip"] == skip)
+                            & (df["Stage"] == stage)
                         ]
                         if not subset.empty:
                             group_label = f"Meta-{stage}, {n_support}"
@@ -257,7 +274,7 @@ def plot_by_support_and_stage(
                                 group_label=group_label,
                                 color=support_color[n_support],
                                 marker=stage_marker[stage],
-                                stage=stage
+                                stage=stage,
                             )
                 if xlims is not None:
                     plt.xlim(xlims)
@@ -267,17 +284,26 @@ def plot_by_support_and_stage(
                 plt.xlabel("Moduli (m)")
                 plt.ylabel("Mean Squared Error (MSE)")
                 plt.legend(title="Data Split, Support Set Size")
-                plt.title(f"{'Odd/Even' if skip == 2 else '20/20'}, {model.capitalize()}, {data_type.capitalize()}")
+                plt.title(
+                    f"{'Odd/Even' if skip == 2 else '20/20'}, {model.capitalize()}, {data_type.capitalize()}"
+                )
                 plt.grid(alpha=0.2)
                 plt.tight_layout()
                 if xlims == None and ylims == None:
                     plt.savefig(
-                        f"figures/support_comp_{skip}_{model}_{data_type}.pdf", format="pdf", dpi=300, bbox_inches="tight"
+                        f"figures/support_comp_{skip}_{model}_{data_type}.pdf",
+                        format="pdf",
+                        dpi=300,
+                        bbox_inches="tight",
                     )
                 else:
                     plt.savefig(
-                        f"figures/support_comp_{skip}_{model}_{data_type}_w_lims.pdf", format="pdf", dpi=300, bbox_inches="tight"
+                        f"figures/support_comp_{skip}_{model}_{data_type}_w_lims.pdf",
+                        format="pdf",
+                        dpi=300,
+                        bbox_inches="tight",
                     )
+
 
 # ===============================
 # 3) Plot by model & stage
@@ -311,11 +337,11 @@ def plot_by_model_and_stage(
                         continue
                     for stage in stages:
                         subset = df[
-                            (df["model"] == model) &
-                            (df["n_support"] == n_support) &
-                            (df["data_type"] == data_type) &
-                            (df["skip"] == skip) & 
-                            (df["Stage"] == stage)
+                            (df["model"] == model)
+                            & (df["n_support"] == n_support)
+                            & (df["data_type"] == data_type)
+                            & (df["skip"] == skip)
+                            & (df["Stage"] == stage)
                         ]
                         if not subset.empty:
                             group_label = f"Meta-{stage}, {model.capitalize()}"
@@ -324,7 +350,7 @@ def plot_by_model_and_stage(
                                 group_label=group_label,
                                 color=model_color[model],
                                 marker=stage_marker[stage],
-                                stage=stage
+                                stage=stage,
                             )
                 if xlims is not None:
                     plt.xlim(xlims)
@@ -334,17 +360,26 @@ def plot_by_model_and_stage(
                 plt.xlabel("Moduli (m)")
                 plt.ylabel("Mean Squared Error (MSE)")
                 plt.legend(title="Dataset Split, Model")
-                plt.title(f"{'Odd/Even' if skip == 2 else '20/20'}, {data_type.capitalize()}, Num. Support = {n_support}")
+                plt.title(
+                    f"{'Odd/Even' if skip == 2 else '20/20'}, {data_type.capitalize()}, Num. Support = {n_support}"
+                )
                 plt.grid(alpha=0.2)
                 plt.tight_layout()
                 if xlims == None and ylims == None:
                     plt.savefig(
-                        f"figures/model_comp_{skip}_{n_support}_{data_type}.pdf", format="pdf", dpi=300, bbox_inches="tight"
+                        f"figures/model_comp_{skip}_{n_support}_{data_type}.pdf",
+                        format="pdf",
+                        dpi=300,
+                        bbox_inches="tight",
                     )
                 else:
                     plt.savefig(
-                        f"figures/model_comp_{skip}_{n_support}_{data_type}_w_lims.pdf", format="pdf", dpi=300, bbox_inches="tight"
+                        f"figures/model_comp_{skip}_{n_support}_{data_type}_w_lims.pdf",
+                        format="pdf",
+                        dpi=300,
+                        bbox_inches="tight",
                     )
+
 
 def main(directory: str = "results/", experiment: str = "mod"):
     csv_path = directory + experiment + ".csv"
@@ -366,5 +401,6 @@ def main(directory: str = "results/", experiment: str = "mod"):
             plot_by_support_and_stage(df, wlims=True)
             plot_by_model_and_stage(df, wlims=True)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     typer.run(main)

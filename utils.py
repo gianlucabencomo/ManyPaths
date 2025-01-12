@@ -58,8 +58,10 @@ def save_model(meta, save_dir="state_dicts", file_prefix="meta_learning"):
 
 
 def calculate_accuracy(predictions, targets):
-    predictions = (predictions > 0.0).float()
-    # Compare with targets and compute accuracy
+    if predictions.shape[1] > 1:
+        predictions = predictions.argmax(dim=1)
+    else:
+        predictions = (predictions > 0.0).float()
     correct = (predictions == targets).sum().item()
     accuracy = correct / targets.numel()
     return accuracy

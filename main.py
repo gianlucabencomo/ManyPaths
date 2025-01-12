@@ -9,17 +9,17 @@ import matplotlib.pyplot as plt
 
 from training import meta_train, hyper_search
 from evaluation import evaluate
-from initialization import init_dataset, init_model
+from initialization import init_dataset, init_model, init_misc
 from utils import set_random_seeds, save_model, get_collate
 from visualize import plot_loss, plot_meta_test_results
 from constants import *
 
-
 def main(
     seed: int = 0,
-    experiment: str = "mod",  # ["mod", "concept"]
+    experiment: str = "mod",  # ["mod", "concept", "omniglot"]
     m: str = "mlp",  # ['mlp', 'cnn', 'lstm', 'transformer']
     data_type: str = "image",  # ['image', 'bits', 'number']
+    alphabet: str = "asian", # ['ancient', 'asian', 'all'] ... only for omniglot
     epochs: int = 1000,  # until convergence
     tasks_per_meta_batch: int = 4,
     adaptation_steps: int = 1,
@@ -38,9 +38,10 @@ def main(
 
     set_random_seeds(seed)
     # init dataset
+    alphabet, bits, channels, n_output = init_misc(experiment, alphabet)
     collate_fn = get_collate(experiment, device)
     train_dataset, test_dataset, val_dataset = init_dataset(
-        experiment, m, data_type, skip
+        experiment, m, data_type, skip, alphabet=alphabet
     )
     train_loader = DataLoader(
         train_dataset,
@@ -51,8 +52,6 @@ def main(
         collate_fn=collate_fn,
     )
 
-    channels = 3 if experiment == "concept" else 1
-    bits = 4 if experiment == "concept" else 8
     if no_hyper_search:
         index = DEFAULT_INDEX
     else:
@@ -67,14 +66,15 @@ def main(
             device,
             channels=channels,
             bits=bits,
+            n_output=n_output
         )
 
     # init meta-learner, loss, and meta-optimizer
     model = init_model(
-        m, data_type, index=index, verbose=True, channels=channels, bits=bits
+        m, data_type, index=index, verbose=True, channels=channels, bits=bits, n_output=n_output
     ).to(device)
     meta = l2l.algorithms.MetaSGD(model, lr=1e-3, first_order=False).to(device)
-    criterion = nn.MSELoss() if experiment == "mod" else nn.BCEWithLogitsLoss()
+    criterion = nn.MSELoss() if experiment == "mod" else nn.BCEWithLogitsLoss() if experiment == "concept" else nn.CrossEntropyLoss()
     optimizer = torch.optim.AdamW(meta.parameters(), lr=outer_lr)
 
     # meta-training
@@ -110,7 +110,7 @@ def main(
                 + "_"
                 + str(seed)
             )
-        else:
+        elif experiment == "concept":
             file_prefix = (
                 experiment
                 + "_"
@@ -119,6 +119,18 @@ def main(
                 + str(index)
                 + "_"
                 + data_type
+                + "_"
+                + str(seed)
+            )
+        else:
+            file_prefix = (
+                experiment
+                + "_"
+                + m
+                + "_"
+                + str(index)
+                + "_"
+                + alphabet
                 + "_"
                 + str(seed)
             )

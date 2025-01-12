@@ -1,6 +1,6 @@
 import time
 import torch
-from  torch.nn.utils import clip_grad_norm_ as clip
+from torch.nn.utils import clip_grad_norm_ as clip
 import torch.nn as nn
 import numpy as np
 import learn2learn as l2l
@@ -45,7 +45,6 @@ def meta_train(
                     support_pred = learner(X_s[t])
                     support_loss = criterion(support_pred, y_s[t])
                     learner.adapt(support_loss)
-
                 # Evaluate on the query set
                 query_pred = learner(X_q[t])
                 query_loss = criterion(query_pred, y_q[t])
@@ -107,15 +106,16 @@ def hyper_search(
     adaptation_steps: int = 1,
     channels: int = 1,
     bits: int = 8,
+    n_output: int = 1,
 ):
     print("--- Hyperparameter Search ---")
     best_index, best_val = 0, np.inf
     for index in INDICES:
         start = time.time()
-        model = init_model(m, data_type, index, channels=channels, bits=bits)
+        model = init_model(m, data_type, index, channels=channels, bits=bits, n_output=n_output)
         model = model.to(device)
         meta = l2l.algorithms.MetaSGD(model, lr=1e-3, first_order=False).to(device)
-        criterion = nn.MSELoss() if experiment == "mod" else nn.BCEWithLogitsLoss()
+        criterion = nn.MSELoss() if experiment == "mod" else nn.BCEWithLogitsLoss() if experiment == "concept" else nn.CrossEntropyLoss()
         optimizer = torch.optim.AdamW(meta.parameters(), lr=outer_lr)
         val_losses, _, _ = meta_train(
             meta,

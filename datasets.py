@@ -1,5 +1,6 @@
 import os
 import torch
+import random
 from PIL import Image
 import numpy as np
 from torchvision import transforms, datasets
@@ -41,7 +42,7 @@ class MetaBitConceptsDataset(BaseMetaDataset):
         n_tasks: int = 10000,
         data: str = "image",
         model: str = "cnn",
-        n_support: int = None,  # for test-time, testing across n_support #
+        n_support: int = None,  # for test-time, testing across n_support
     ):
         super().__init__()
         assert data in ["image", "bits"]
@@ -85,7 +86,9 @@ class MetaBitConceptsDataset(BaseMetaDataset):
                     X_image_s = X_image_q[inds]
                     y_s = torch.tensor(labels, dtype=torch.float).unsqueeze(1)[inds]
                     y_q = torch.tensor(labels, dtype=torch.float).unsqueeze(1)
-                    self.tasks.append((X_image_s, X_s, y_s, X_image_q, X_q, y_q, n_support))
+                    self.tasks.append(
+                        (X_image_s, X_s, y_s, X_image_q, X_q, y_q, n_support)
+                    )
                     break
 
     def _generate_bit_tasks(self):
@@ -110,7 +113,9 @@ class MetaBitConceptsDataset(BaseMetaDataset):
                         X_s = X_s.unsqueeze(2)
                     X_bits_s = X_s * 2 - 1
                     X_bits_q = X_q * 2 - 1
-                    self.tasks.append((X_bits_s, X_s, y_s, X_bits_q, X_q, y_q, n_support))
+                    self.tasks.append(
+                        (X_bits_s, X_s, y_s, X_bits_q, X_q, y_q, n_support)
+                    )
                     break
 
 
@@ -223,7 +228,6 @@ class MetaModuloDataset(BaseMetaDataset):
 
 
 class Omniglot(BaseMetaDataset):
-
     DATA_PATH = "./omniglot"
 
     def __init__(
@@ -233,7 +237,7 @@ class Omniglot(BaseMetaDataset):
         model: str = "cnn",
         N: int = 20,
         K: int = 5,
-        train = True,
+        train=True,
     ):
         super().__init__()
         self.n_tasks = n_tasks
@@ -242,37 +246,42 @@ class Omniglot(BaseMetaDataset):
         self.K = K
         self.train = train
         self.alphabet = alphabet
-        self.transform_train = transforms.Compose([
-            transforms.Grayscale(num_output_channels=1),
-            transforms.Resize((32, 32)),
-            transforms.RandomRotation(15),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.922059], std=[0.268076])
-        ])
-        self.transform_test = transforms.Compose([
-            transforms.Grayscale(num_output_channels=1),
-            transforms.Resize((32, 32)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.922059], std=[0.268076])
-        ])
+        self.transform_train = transforms.Compose(
+            [
+                transforms.Grayscale(num_output_channels=1),
+                transforms.Resize((32, 32)),
+                transforms.RandomRotation(15),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.922059], std=[0.268076]),
+            ]
+        )
+        self.transform_test = transforms.Compose(
+            [
+                transforms.Grayscale(num_output_channels=1),
+                transforms.Resize((32, 32)),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.922059], std=[0.268076]),
+            ]
+        )
         self.transform = self.transform_train if self.train else self.transform_test
-        self.dataset, self.characters = self._init_dataset()
+        self.dataset, self.characters, self.image_cache = self._init_dataset()
         self._generate_tasks()
 
     def _init_dataset(self):
         raw_dataset = datasets.Omniglot(
-            root=self.DATA_PATH,
-            background=self.train,
-            download=True
+            root=self.DATA_PATH, background=self.train, download=True
         )
+        self.target_folder = raw_dataset.target_folder
         images_per_char = []
         for character in raw_dataset._characters:
-            char_path = os.path.join(raw_dataset.target_folder, character)
+            char_path = os.path.join(self.target_folder, character)
             # list_files returns all *.png in that character directory
-            images_per_char.append([
-                (file_name,) + os.path.split(character)  
-                for file_name in list_files(char_path, ".png")
-            ])
+            images_per_char.append(
+                [
+                    (file_name,) + os.path.split(character)
+                    for file_name in list_files(char_path, ".png")
+                ]
+            )
         dataset = defaultdict(lambda: defaultdict(list))
         for group in images_per_char:
             for file_name, alpha, character in group:
@@ -281,40 +290,42 @@ class Omniglot(BaseMetaDataset):
         if self.alphabet is not None and self.train:
             dataset = {a: dataset[a] for a in self.alphabet if a in dataset}
         characters = [(a, c) for a in dataset for c in dataset[a]]
-        return dataset, characters
+
+        image_cache = {}
+        for alpha in dataset:
+            for char in dataset[alpha]:
+                for img_name in dataset[alpha][char]:
+                    # Full path
+                    img_path = os.path.join(self.target_folder, alpha, char, img_name)
+                    # Load once, store the raw PIL image
+                    # (We apply transforms later, so random transformations still differ each time.)
+                    image_cache[img_path] = self.transform(Image.open(img_path).convert("L"))
+
+        return dataset, characters, image_cache
 
     def _generate_tasks(self):
         for _ in range(self.n_tasks):
-            characters = np.random.choice(self.characters, size=self.N)
+            characters = random.sample(self.characters, self.N)
             X_s, X_q, y_s, y_q = [], [], [], []
             for i, (alphabet, character) in enumerate(characters):
                 images = self.dataset[alphabet][character]
                 np.random.shuffle(images)
-                support = images[:self.K]
-                query = images[self.K:]
+                support = [os.path.join(self.target_folder, alphabet, character, img) for img in images[: self.K]]
+                query = [os.path.join(self.target_folder, alphabet, character, img) for img in images[self.K :]]
                 X_s.extend(support)
                 y_s.extend([i] * self.K)  # Class label `i` for support set
                 X_q.extend(query)
                 y_q.extend([i] * len(query))  # Class label `i` for query set
-            self.tasks.append((X_s, y_s, X_q, y_q))
-
-    def __getitem__(self, idx):
-        X_s, y_s, X_q, y_q = self.tasks[idx]
-        X_image_s = []
-        for img_path in X_s:
-            img_full_path = os.path.join(self.dataset.target_folder, img_path)
-            img = Image.open(img_full_path).convert("L")  # grayscale
-            img = self.transform(img)
-            X_image_s.append(img)
-        X_s = torch.stack(X_image_s) 
-
-        # query set
-        X_image_q = []
-        for img_path in X_q:
-            img_full_path = os.path.join(self.dataset.target_folder, img_path)
-            img = Image.open(img_full_path).convert("L")
-            img = self.transform(img)
-            X_image_q.append(img)
-        X_q = torch.stack(X_image_q)
-
-        return X_s, y_s, X_q, y_q
+            X_s_imgs = [self.image_cache[path] for path in X_s]
+            X_q_imgs = [self.image_cache[path] for path in X_q]
+            X_s = torch.stack(X_s_imgs)
+            X_q = torch.stack(X_q_imgs)
+            if self.model == "mlp":
+                X_s = X_s.view(X_s.size(0), -1)  
+                X_q = X_q.view(X_q.size(0), -1)
+            elif self.model in ["lstm", "transformer"]:
+                X_s = self._image_to_patches(X_s)
+                X_q = self._image_to_patches(X_q)
+            y_s = torch.tensor(y_s, dtype=torch.long)
+            y_q = torch.tensor(y_q, dtype=torch.long)
+            self.tasks.append((X_s, None, y_s, X_q, None, y_q, None))

@@ -19,24 +19,25 @@ from initialization import init_model, init_dataset
 from scipy.stats import sem, t
 import pandas as pd
 
+
 def get_filenames_seeds_indices(directory, experiment, model, data_type, skip):
     # Construct the regex pattern
     if experiment == "mod":
         pattern = (
-            rf"{experiment}_"      # Experiment name
-            rf"{model}_"           # Model name
-            r"(\d+)_"              # Capturing group for index
-            rf"{data_type}_"       # Data type
-            rf"{skip}_"            # Skip value
-            r"(\d+)\.pth"          # Capturing group for seed
+            rf"{experiment}_"  # Experiment name
+            rf"{model}_"  # Model name
+            r"(\d+)_"  # Capturing group for index
+            rf"{data_type}_"  # Data type
+            rf"{skip}_"  # Skip value
+            r"(\d+)\.pth"  # Capturing group for seed
         )
     else:
         pattern = (
-            rf"{experiment}_"      # Experiment name
-            rf"{model}_"           # Model name
-            r"(\d+)_"              # Capturing group for index
-            rf"{data_type}_"       # Data type
-            r"(\d+)\.pth"          # Capturing group for seed
+            rf"{experiment}_"  # Experiment name
+            rf"{model}_"  # Model name
+            r"(\d+)_"  # Capturing group for index
+            rf"{data_type}_"  # Data type
+            r"(\d+)\.pth"  # Capturing group for seed
         )
 
     results = []
@@ -45,7 +46,7 @@ def get_filenames_seeds_indices(directory, experiment, model, data_type, skip):
             match = re.match(pattern, filename)
             if match:
                 index = match.group(1)  # Extracted index
-                seed = match.group(2)   # Extracted seed
+                seed = match.group(2)  # Extracted seed
                 filepath = os.path.join(directory, filename)
                 results.append((filepath, int(index), int(seed)))
     except FileNotFoundError:
@@ -55,13 +56,18 @@ def get_filenames_seeds_indices(directory, experiment, model, data_type, skip):
 
     return results
 
-def compute_mean_and_variance(results, experiment='mod'):
-    if experiment == 'concept':
+
+def compute_mean_and_variance(results, experiment="mod"):
+    if experiment == "concept":
         pre_adapt = np.array([[task["losses"][0] for task in res] for res in results])
         post_adapt = np.array([[task["losses"][1] for task in res] for res in results])
     else:
-        pre_adapt = np.array([[task["accuracies"][0] for task in res] for res in results])
-        post_adapt = np.array([[task["accuracies"][1] for task in res] for res in results])
+        pre_adapt = np.array(
+            [[task["accuracies"][0] for task in res] for res in results]
+        )
+        post_adapt = np.array(
+            [[task["accuracies"][1] for task in res] for res in results]
+        )
     m = np.array([task["m"] for task in results[0]])
 
     mean_pre = np.mean(pre_adapt, axis=0)  # Mean across seeds
@@ -86,9 +92,9 @@ def main(
 ):
     architectures = ["mlp", "cnn", "transformer"]
     n_supports = [20, 40, 100] if experiment == "mod" else [5, 10, 15]
-    data_types = ['image', 'bits', 'number']
+    data_types = ["image", "bits", "number"]
     if experiment == "concept":
-        data_types.remove('number')
+        data_types.remove("number")
     skips = [1, 2] if experiment == "mod" else [None]
     channels = 3 if experiment == "concept" else 1
     bits = 4 if experiment == "concept" else 8
@@ -103,21 +109,32 @@ def main(
         )
         print(f"Device: {device}")
         for data_type in data_types:
-            if (data_type == "number" and m != "mlp"):
+            if data_type == "number" and m != "mlp":
                 continue
-            if (data_type in ["number", "bits"] and m == "cnn"):
+            if data_type in ["number", "bits"] and m == "cnn":
                 continue
             for skip in skips:
-                models = get_filenames_seeds_indices(directory, experiment, m, data_type, skip)
-                for (filepath, index, seed) in models:
+                models = get_filenames_seeds_indices(
+                    directory, experiment, m, data_type, skip
+                )
+                for filepath, index, seed in models:
                     base_model = init_model(
-                        m, data_type, index=index, verbose=True, channels=channels, bits=bits
+                        m,
+                        data_type,
+                        index=index,
+                        verbose=True,
+                        channels=channels,
+                        bits=bits,
                     ).to(device)
-                    meta = l2l.algorithms.MetaSGD(base_model, lr=1e-3, first_order=False).to(device)
+                    meta = l2l.algorithms.MetaSGD(
+                        base_model, lr=1e-3, first_order=False
+                    ).to(device)
 
                     # Load the saved .pth file
                     if not os.path.exists(filepath):
-                        raise FileNotFoundError(f"Specified pth file not found: {filepath}")
+                        raise FileNotFoundError(
+                            f"Specified pth file not found: {filepath}"
+                        )
                     meta.load_state_dict(
                         torch.load(filepath, map_location=device, weights_only=False)
                     )
@@ -163,40 +180,56 @@ def main(
                                 plt.show()
 
                     for n_support in n_supports:
-                        _, _, val_mean_post, val_var_post, val_m = compute_mean_and_variance(vals[n_support])
-                        _, _, test_mean_post, test_var_post, test_m = compute_mean_and_variance(tests[n_support])
+                        (
+                            _,
+                            _,
+                            val_mean_post,
+                            val_var_post,
+                            val_m,
+                        ) = compute_mean_and_variance(vals[n_support])
+                        (
+                            _,
+                            _,
+                            test_mean_post,
+                            test_var_post,
+                            test_m,
+                        ) = compute_mean_and_variance(tests[n_support])
 
                         # For each task (m) in validation
                         for i, m_val in enumerate(val_m):
-                            results_master.append({
-                                "experiment": experiment,
-                                "model": m,
-                                "data_type": data_type,
-                                "skip": skip,
-                                "n_support": n_support,
-                                "Stage": "Val",
-                                # The "task index" or moduli
-                                "m": m_val,
-                                # post-adaptation
-                                "mean_post": float(val_mean_post[i]),
-                                "var_post": float(val_var_post[i]),
-                                "index": index,
-                            })
+                            results_master.append(
+                                {
+                                    "experiment": experiment,
+                                    "model": m,
+                                    "data_type": data_type,
+                                    "skip": skip,
+                                    "n_support": n_support,
+                                    "Stage": "Val",
+                                    # The "task index" or moduli
+                                    "m": m_val,
+                                    # post-adaptation
+                                    "mean_post": float(val_mean_post[i]),
+                                    "var_post": float(val_var_post[i]),
+                                    "index": index,
+                                }
+                            )
 
                         # For each task (m) in test
                         for i, m_test in enumerate(test_m):
-                            results_master.append({
-                                "experiment": experiment,
-                                "model": m,
-                                "data_type": data_type,
-                                "skip": skip,
-                                "n_support": n_support,
-                                "Stage": "Test",
-                                "m": m_test,
-                                "mean_post": float(test_mean_post[i]),
-                                "var_post": float(test_var_post[i]),
-                                "index": index,
-                            })
+                            results_master.append(
+                                {
+                                    "experiment": experiment,
+                                    "model": m,
+                                    "data_type": data_type,
+                                    "skip": skip,
+                                    "n_support": n_support,
+                                    "Stage": "Test",
+                                    "m": m_test,
+                                    "mean_post": float(test_mean_post[i]),
+                                    "var_post": float(test_var_post[i]),
+                                    "index": index,
+                                }
+                            )
     df_master = pd.DataFrame(results_master)
     print(df_master)
 
@@ -205,7 +238,6 @@ def main(
         output_file = os.path.join(output_folder, f"{experiment}.csv")
         df_master.to_csv(output_file, index=False)
         print(f"Results saved to {output_file}")
-
 
 
 if __name__ == "__main__":

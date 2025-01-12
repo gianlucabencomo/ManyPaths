@@ -51,7 +51,7 @@ class MLP(nn.Module):
         n_output: int = 1,
         n_hidden: int = 64,
         n_layers: int = 8,
-        n_input_channels: int = 1
+        n_input_channels: int = 1,
     ):
         super().__init__()
         layers = []
@@ -319,7 +319,7 @@ def main(index: int = 3):
             n_input=counts_mlp[index],
             n_hidden=MLP_PARAMS[i][0],
             n_layers=MLP_PARAMS[i][1],
-            n_input_channels=C[index]
+            n_input_channels=C[index],
         )
         lstm = LSTM(
             n_input=counts_seq[index],

@@ -75,11 +75,13 @@ TRANSFORMER_PARAMS = [
     (32, 4),  # 14
     (64, 4),  # 15
 ]
+
 MODELS = ["mlp", "transformer", "lstm", "cnn"]
 DATA_TYPES = ["number", "bits", "image"]
 SKIPS = [1, 2]  # 20-20 and even-odd
 INDICES = np.arange(16)
 DEFAULT_INDEX = 7
+
 FEATURE_VALUES = np.array(
     [
         [0, 0, 0, 0],
@@ -100,3 +102,13 @@ FEATURE_VALUES = np.array(
         [1, 1, 1, 1],
     ]
 )
+
+ALPHABETS = {
+    "misc" : ["Alphabet_of_the_Magi", "Braille", "Futurama"],
+    "ancient" : ["Anglo-Saxon_Futhorc", "Arcadian", "Armenian", "Asomtavruli_(Georgian)", "Early_Aramaic", "Grantha", "Greek", "Hebrew", "Latin", "Sanskrit", "Syriac_(Estrangelo)", "Tifinagh"],
+    "asian" : ["Balinese", "Bengali", "Burmese_(Myanmar)", "Grantha", "Gujarati", "Japanese_(hiragana)", "Japanese_(katakana)", "Korean", "Malay_(Jawi_-_Arabic)", "Sanskrit", "Tagalog"],
+    "european" : ["Anglo-Saxon_Futhorc", "Cyrillic", "Greek", "Braille", "Latin"],
+    "middle" : ["Armenian", "Asomtavruli_(Georgian)", "Early_Aramaic", "Hebrew", "Malay_(Jawi_-_Arabic)", "Mkhedruli_(Georgian)", "Syriac_(Estrangelo)"],
+    "aboriginal" : ["Blackfoot_(Canadian_Aboriginal_Syllabics)", "Inuktitut_(Canadian_Aboriginal_Syllabics)", "Ojibwe_(Canadian_Aboriginal_Syllabics)"],
+    "african" : ["N_Ko", "Tifinagh"]
+}

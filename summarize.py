@@ -9,6 +9,7 @@ import pandas as pd
 
 EPSILON = 1e-4
 
+
 def summarize_experiment(
     df: pd.DataFrame,
     experiment: str,
@@ -29,26 +30,31 @@ def summarize_experiment(
                     for stage in stages:
                         if experiment == "concept":
                             subset = df[
-                                (df["model"] == model) &
-                                (df["n_support"] == n_support) &
-                                (df["data_type"] == data_type) &
-                                # (df["skip"] == skip) & 
+                                (df["model"] == model)
+                                & (df["n_support"] == n_support)
+                                & (df["data_type"] == data_type)
+                                &
+                                # (df["skip"] == skip) &
                                 (df["Stage"] == stage)
                             ]
                         else:
                             subset = df[
-                                (df["model"] == model) &
-                                (df["n_support"] == n_support) &
-                                (df["data_type"] == data_type) &
-                                (df["skip"] == skip) & 
-                                (df["Stage"] == stage)
+                                (df["model"] == model)
+                                & (df["n_support"] == n_support)
+                                & (df["data_type"] == data_type)
+                                & (df["skip"] == skip)
+                                & (df["Stage"] == stage)
                             ]
                         if subset.empty:
                             continue
                         if stage == "Test" or experiment == "mod":
-                            w = (1 / (subset["var_post"] + EPSILON))
+                            w = 1 / (subset["var_post"] + EPSILON)
                             w_norm = w / w.sum()
-                            print(f"{stage}: Model = {model}, n_support = {n_support}, data type = {data_type}, Acc/Loss = {np.sum(w_norm * subset['mean_post']):.3f} +/- {1.96 * np.sqrt(1 / w.sum()):.3f}")
+                            print(
+                                f"{stage}: Model = {model}, n_support = {n_support}, data type = {data_type}, Acc/Loss = {np.sum(w_norm * subset['mean_post']):.3f} +/- {1.96 * np.sqrt(1 / w.sum()):.3f}"
+                            )
+
+
 def main(directory: str = "results/", experiment: str = "concept"):
     csv_path = directory + experiment + ".csv"
     # Load DataFrame
@@ -60,5 +66,6 @@ def main(directory: str = "results/", experiment: str = "concept"):
     else:
         summarize_experiment(df, experiment)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     typer.run(main)
