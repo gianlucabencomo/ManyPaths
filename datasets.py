@@ -269,7 +269,7 @@ class Omniglot(BaseMetaDataset):
 
     def _init_dataset(self):
         raw_dataset = datasets.Omniglot(
-            root=self.DATA_PATH, background=self.train, download=True
+            root=self.DATA_PATH, background=self.train, download=False # change to true if you don't have the dataset
         )
         self.target_folder = raw_dataset.target_folder
         images_per_char = []

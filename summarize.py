@@ -22,9 +22,9 @@ def summarize_experiment(
     for skip in skips:
         for n_support in n_supports:
             for data_type in data_types:
-                if data_type == "number":
-                    continue
                 for model in models:
+                    if data_type == "number" and model in ["transformer", "lstm", "cnn"]:
+                        continue
                     if (data_type in ["number", "bits"]) and model == "cnn":
                         continue
                     for stage in stages:
@@ -33,9 +33,7 @@ def summarize_experiment(
                                 (df["model"] == model)
                                 & (df["n_support"] == n_support)
                                 & (df["data_type"] == data_type)
-                                &
-                                # (df["skip"] == skip) &
-                                (df["Stage"] == stage)
+                                & (df["Stage"] == stage)
                             ]
                         else:
                             subset = df[
@@ -51,7 +49,7 @@ def summarize_experiment(
                             w = 1 / (subset["var_post"] + EPSILON)
                             w_norm = w / w.sum()
                             print(
-                                f"{stage}: Model = {model}, n_support = {n_support}, data type = {data_type}, Acc/Loss = {np.sum(w_norm * subset['mean_post']):.3f} +/- {1.96 * np.sqrt(1 / w.sum()):.3f}"
+                                f"{stage}: Model = {model}, n_support = {n_support}, data type = {data_type}, Skip = {skip}, Acc/Loss = {np.sum(w_norm * subset['mean_post']):.3f} +/- {1.96 * np.sqrt(1 / w.sum()):.3f}"
                             )
 
 

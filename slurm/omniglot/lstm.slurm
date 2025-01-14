@@ -3,8 +3,8 @@
 #SBATCH --nodes=1                    # node count
 #SBATCH --ntasks=1                   # total number of tasks
 #SBATCH --cpus-per-task=4            # moderate parallelization
-#SBATCH --mem=80G                    # moderate memory
-#SBATCH --time=48:00:00               # expected runtime
+#SBATCH --mem=10G                    # moderate memory
+#SBATCH --time=96:00:00               # expected runtime
 #SBATCH --mail-type=begin
 #SBATCH --mail-type=end
 #SBATCH --mail-type=fail

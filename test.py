@@ -58,7 +58,7 @@ def get_filenames_seeds_indices(directory, experiment, model, data_type, skip):
 
 
 def compute_mean_and_variance(results, experiment="mod"):
-    if experiment == "concept":
+    if experiment == "mod":
         pre_adapt = np.array([[task["losses"][0] for task in res] for res in results])
         post_adapt = np.array([[task["losses"][1] for task in res] for res in results])
     else:
@@ -84,22 +84,27 @@ def compute_mean_and_variance(results, experiment="mod"):
 def main(
     directory: str = "./state_dicts/",
     output_folder: str = "results",
-    experiment: str = "mod",  # ["mod", "concept"]
+    experiment: str = "mod",  # ["mod", "concept", "omniglot"]
     test_seeds: int = 10,
     adaptation_steps: int = 1,
     plot: bool = False,
     save: bool = False,
 ):
-    architectures = ["mlp", "cnn", "transformer"]
-    n_supports = [20, 40, 100] if experiment == "mod" else [5, 10, 15]
-    data_types = ["image", "bits", "number"]
+    if experiment == "omniglot":
+        architectures = ["mlp", "cnn", "transformer"]
+        data_types = ["all", "ancient", "asian", "middle", "european"]
+        n_supports = [5]
+    else:
+        architectures = ["lstm", "mlp", "cnn", "transformer"]
+        data_types = ["image", "bits", "number"]
+        n_supports = [20, 40, 100] if experiment == "mod" else [5, 10, 15]
     if experiment == "concept":
         data_types.remove("number")
     skips = [1, 2] if experiment == "mod" else [None]
     channels = 3 if experiment == "concept" else 1
     bits = 4 if experiment == "concept" else 8
-    criterion = nn.MSELoss() if experiment == "mod" else nn.BCEWithLogitsLoss()
-
+    criterion = nn.MSELoss() if experiment == "mod" else nn.BCEWithLogitsLoss() if experiment == "concept" else nn.CrossEntropyLoss()
+    
     results_master = []
     for m in architectures:
         device = torch.device(
@@ -120,11 +125,12 @@ def main(
                 for filepath, index, seed in models:
                     base_model = init_model(
                         m,
-                        data_type,
+                        "image" if experiment == "omniglot" else data_type,
                         index=index,
                         verbose=True,
                         channels=channels,
                         bits=bits,
+                        n_output=20 if experiment == "omniglot" else 1,
                     ).to(device)
                     meta = l2l.algorithms.MetaSGD(
                         base_model, lr=1e-3, first_order=False
@@ -139,7 +145,7 @@ def main(
                         torch.load(filepath, map_location=device, weights_only=False)
                     )
                     print(f"Loaded meta-learner state from {filepath}")
-
+   
                     vals = {n_support: [] for n_support in n_supports}
                     tests = {n_support: [] for n_support in n_supports}
                     for s in tqdm(range(seed, seed + test_seeds)):
@@ -186,14 +192,14 @@ def main(
                             val_mean_post,
                             val_var_post,
                             val_m,
-                        ) = compute_mean_and_variance(vals[n_support])
+                        ) = compute_mean_and_variance(vals[n_support], experiment=experiment)
                         (
                             _,
                             _,
                             test_mean_post,
                             test_var_post,
                             test_m,
-                        ) = compute_mean_and_variance(tests[n_support])
+                        ) = compute_mean_and_variance(tests[n_support], experiment=experiment)
 
                         # For each task (m) in validation
                         for i, m_val in enumerate(val_m):
