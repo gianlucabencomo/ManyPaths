@@ -28,7 +28,7 @@ def summarize_experiment(
                     if (data_type in ["number", "bits"]) and model == "cnn":
                         continue
                     for stage in stages:
-                        if experiment == "concept":
+                        if experiment in ["concept", "omniglot"]:
                             subset = df[
                                 (df["model"] == model)
                                 & (df["n_support"] == n_support)

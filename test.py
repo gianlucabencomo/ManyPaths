@@ -91,7 +91,7 @@ def main(
     save: bool = False,
 ):
     if experiment == "omniglot":
-        architectures = ["mlp", "cnn", "transformer"]
+        architectures = [ "lstm", "mlp", "cnn", "transformer"]
         data_types = ["all", "ancient", "asian", "middle", "european"]
         n_supports = [5]
     else:
