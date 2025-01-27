@@ -5,9 +5,118 @@ import torch.nn as nn
 import numpy as np
 import learn2learn as l2l
 
-from evaluation import evaluate
+from evaluation import evaluate, baseline_evaluate
 from initialization import init_model
 from constants import *
+
+
+def vanilla_train(
+    model,
+    train_loader,
+    val_dataset,
+    test_dataset,
+    criterion,
+    optimizer,
+    device,
+    epochs: int = 1000,  # Increased for convergence
+    patience: int = 100,  # Increased for convergenc
+    adaptation_steps: int = 1,
+    verbose: bool = False,
+):
+    """Train a model using vanilla supervised learning.
+    
+    Unlike meta_train, this function:
+    1. Takes a regular model instead of a meta-learning model
+    2. Uses all data (support + query) concatenated into one batch
+    3. Performs standard supervised learning updates
+    
+    Note: Uses the same optimizer (AdamW) and parameters as meta-learning
+    for fair comparison.
+    """
+    if verbose:
+        print("--- Vanilla Training ---")
+    
+    model.train()
+    val_losses, test_losses = [], []
+    best_val_loss = float("inf")
+    best_model_state = None
+    no_improve_epochs = 0
+    batches_seen = 0
+    stop_early = False
+    start = time.time()
+    
+    for epoch in range(epochs):
+        epoch_loss = 0.0
+        n_batches = 0
+        #TODO: (DONE) concatenate meta-episodes into single batches for pre-training
+        for _, (X_s, y_s, X_q, y_q) in enumerate(train_loader):
+            # Concatenate all support set examples
+            all_X_s = torch.cat([x for x in X_s], dim=0)  
+            all_y_s = torch.cat([y for y in y_s], dim=0) 
+            #query
+            X_q_flat = X_q.reshape(-1, X_q.shape[-1])  #[total_samples, features]
+            y_q_flat = y_q.reshape(-1)  # [total_samples]
+            
+            if len(all_y_s.shape) > 1:
+                all_y_s = all_y_s.reshape(-1)
+            
+            # Combine support and query data
+            inputs = torch.cat([all_X_s, X_q_flat], dim=0)
+            targets = torch.cat([all_y_s, y_q_flat], dim=0)
+            
+            inputs, targets = inputs.to(device), targets.to(device)
+            targets = targets.view(-1, 1)  
+            
+            # Forward pass
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
+            
+            # Backward pass
+            loss.backward()
+            clip(model.parameters(), 1.0)  
+            optimizer.step()
+            
+            epoch_loss += loss.item()
+            n_batches += 1
+            batches_seen += 1
+            
+            if batches_seen % 1000 == 0:  
+                val_loss, val_acc = baseline_evaluate(
+                    model, val_dataset, criterion, device, [0, adaptation_steps]
+                )
+                test_loss, test_acc = baseline_evaluate(
+                    model, test_dataset, criterion, device, [0, adaptation_steps]
+                )
+                val_losses.append(val_loss)
+                test_losses.append(test_loss)
+                no_improve_epochs += 1
+                if val_loss < best_val_loss:
+                    best_val_loss = val_loss
+                    best_model_state = model.state_dict()
+                    no_improve_epochs = 0
+
+                if verbose:
+                    print(
+                        f"Batches {batches_seen}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}, Test Loss: {test_loss:.4f}, Test Acc: {test_acc:.4f} ({time.time() - start:.2f}s)"
+                    )
+                
+                if no_improve_epochs >= patience:
+                    if verbose:
+                        print(
+                            f"No validation improvement after {patience} epochs. Stopping early..."
+                        )
+                    stop_early = True
+                    break
+                if np.isnan(val_loss):
+                    if verbose:
+                        print(f"Pre-training diverged. Stopping early...")
+                    stop_early = True
+                    break
+                start = time.time()
+        if stop_early:
+            break
+    return val_losses, test_losses, best_model_state
 
 
 def meta_train(
