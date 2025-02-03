@@ -61,11 +61,15 @@ def compute_mean_and_variance(results, experiment="mod"):
     if experiment == "mod":
         adapt_1 = np.array([[task["losses"][0] for task in res] for res in results])
         adapt_10 = np.array([[task["losses"][1] for task in res] for res in results])
-        adapt_100 = np.array([[task["losses"][2] for task in res] for res in results])
+        adapt_50 = np.array([[task["losses"][2] for task in res] for res in results])
+        adapt_100 = np.array([[task["losses"][3] for task in res] for res in results])
+        adapt_200 = np.array([[task["losses"][4] for task in res] for res in results])
     else:
         adapt_1 = np.array([[task["accuracies"][0] for task in res] for res in results])
         adapt_10 = np.array([[task["accuracies"][1] for task in res] for res in results])
-        adapt_100 = np.array([[task["accuracies"][2] for task in res] for res in results])
+        adapt_50 = np.array([[task["accuracies"][2] for task in res] for res in results])
+        adapt_100 = np.array([[task["accuracies"][3] for task in res] for res in results])
+        adapt_200 = np.array([[task["accuracies"][4] for task in res] for res in results])
     m = np.array([task["m"] for task in results[0]])
 
     mean_1 = np.mean(adapt_1, axis=0)  # Mean across seeds
@@ -76,13 +80,19 @@ def compute_mean_and_variance(results, experiment="mod"):
     stderr_10 = sem(adapt_10, axis=0)  # Standard error of the mean
     var_10 = stderr_10**2  # Variance
 
+    mean_50 = np.mean(adapt_50, axis=0)  # Mean across seeds
+    stderr_50 = sem(adapt_50, axis=0)  # Standard error of the mean
+    var_50 = stderr_50**2  # Variance
+
     mean_100 = np.mean(adapt_100, axis=0)  # Mean across seeds
     stderr_100 = sem(adapt_100, axis=0)  # Standard error of the mean
     var_100 = stderr_100**2  # Variance
 
-    return mean_1, var_1, mean_10, var_10, mean_100, var_100, m
+    mean_200 = np.mean(adapt_200, axis=0)  # Mean across seeds
+    stderr_200 = sem(adapt_200, axis=0)  # Standard error of the mean
+    var_200 = stderr_200**2  # Variance
 
-
+    return mean_1, var_1, mean_10, var_10, mean_50, var_50, mean_100, var_100, mean_200, var_200, m
 def main(
     directory: str = "./state_dicts/",
     output_folder: str = "results",
@@ -91,9 +101,9 @@ def main(
     plot: bool = False,
     save: bool = False,
 ):
-    architectures = ["mlp", "lstm", "cnn", "transformer"]
+    architectures = ["cnn", "mlp", "lstm", "transformer"]
     if experiment == "omniglot":
-        data_types = ["all", "ancient", "asian", "middle", "european"]
+        data_types = ["all"]
         n_supports = [5]
     else:
         data_types = ["image", "bits", "number"]
@@ -142,20 +152,21 @@ def main(
                                 experiment, m, data_type, skip, n_support=n_support
                             )
 
-                            # Evaluate on validation set
-                            _, val_results = baseline_evaluate(
-                                model,
-                                val_dataset,
-                                criterion,
-                                device,
-                                [1, 10, 100],
-                                return_results=True,
-                            )
-                            vals[n_support].append(val_results)
-                            # Optionally plot the validation results
-                            if plot:
-                                plot_meta_test_results(val_results)
-                                plt.show()
+                            if experiment == "mod":
+                                # Evaluate on validation set
+                                _, val_results = baseline_evaluate(
+                                    model,
+                                    val_dataset,
+                                    criterion,
+                                    device,
+                                    [1, 10, 50, 100, 200],
+                                    return_results=True,
+                                )
+                                vals[n_support].append(val_results)
+                                # Optionally plot the validation results
+                                if plot:
+                                    plot_meta_test_results(val_results)
+                                    plt.show()
 
                             # Evaluate on test set
                             _, test_results = baseline_evaluate(
@@ -163,7 +174,7 @@ def main(
                                 test_dataset,
                                 criterion,
                                 device,
-                                [1, 10, 100],
+                                [1, 10, 50, 100, 200],
                                 return_results=True,
                             )
                             tests[n_support].append(test_results)
@@ -173,47 +184,61 @@ def main(
                                 plt.show()
 
                     for n_support in n_supports:
-                        (
-                            val_mean_1,
-                            val_var_1,
-                            val_mean_10,
-                            val_var_10,
-                            val_mean_100,
-                            val_var_100,
-                            val_m,
-                        ) = compute_mean_and_variance(vals[n_support], experiment=experiment)
+                        if experiment == "mod":
+                            (
+                                val_mean_1,
+                                val_var_1,
+                                val_mean_10,
+                                val_var_10,
+                                val_mean_50,
+                                val_var_50,
+                                val_mean_100,
+                                val_var_100,
+                                val_mean_200,
+                                val_var_200,
+                                val_m,
+                            ) = compute_mean_and_variance(vals[n_support], experiment=experiment)
                         (
                             test_mean_1,
                             test_var_1,
                             test_mean_10,
                             test_var_10,
+                            test_mean_50,
+                            test_var_50,
                             test_mean_100,
-                            test_var_100,                            
+                            test_var_100,
+                            test_mean_200,
+                            test_var_200,                           
                             test_m,
                         ) = compute_mean_and_variance(tests[n_support], experiment=experiment)
 
                         # For each task (m) in validation
-                        for i, m_val in enumerate(val_m):
-                            results_master.append(
-                                {
-                                    "experiment": experiment,
-                                    "model": m,
-                                    "data_type": data_type,
-                                    "skip": skip,
-                                    "n_support": n_support,
-                                    "Stage": "Val",
-                                    # The "task index" or moduli
-                                    "m": m_val,
-                                    # post-adaptation
-                                    "mean_1": float(val_mean_1[i]),
-                                    "var_1": float(val_var_1[i]),
-                                    "mean_10": float(val_mean_10[i]),
-                                    "var_10": float(val_var_10[i]),
-                                    "mean_100": float(val_mean_100[i]),
-                                    "var_100": float(val_var_100[i]),
-                                    "index": index,
-                                }
-                            )
+                        if experiment == "mod":
+                            for i, m_val in enumerate(val_m):
+                                results_master.append(
+                                    {
+                                        "experiment": experiment,
+                                        "model": m,
+                                        "data_type": data_type,
+                                        "skip": skip,
+                                        "n_support": n_support,
+                                        "Stage": "Val",
+                                        # The "task index" or moduli
+                                        "m": m_val,
+                                        # post-adaptation
+                                        "mean_1": float(val_mean_1[i]),
+                                        "var_1": float(val_var_1[i]),
+                                        "mean_10": float(val_mean_10[i]),
+                                        "var_10": float(val_var_10[i]),
+                                        "mean_50": float(val_mean_50[i]),
+                                        "var_50": float(val_var_50[i]),
+                                        "mean_100": float(val_mean_100[i]),
+                                        "var_100": float(val_var_100[i]),
+                                        "mean_200": float(val_mean_200[i]),
+                                        "var_200": float(val_var_200[i]),
+                                        "index": index,
+                                    }
+                                )
 
                         # For each task (m) in test
                         for i, m_test in enumerate(test_m):
@@ -230,11 +255,18 @@ def main(
                                     "var_1": float(test_var_1[i]),
                                     "mean_10": float(test_mean_10[i]),
                                     "var_10": float(test_var_10[i]),
+                                    "mean_50": float(test_mean_50[i]),
+                                    "var_50": float(test_var_50[i]),
                                     "mean_100": float(test_mean_100[i]),
                                     "var_100": float(test_var_100[i]),
+                                    "mean_200": float(test_mean_200[i]),
+                                    "var_200": float(test_var_200[i]),
                                     "index": index,
                                 }
                             )
+                        print(test_mean_50)
+                        print(test_mean_100)
+                        print(test_mean_200)
     df_master = pd.DataFrame(results_master)
     print(df_master)
 
